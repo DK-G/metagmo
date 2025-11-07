@@ -1,0 +1,10 @@
+{
+  "name": "ui-components",
+  "version": "0.1.0",
+  "main": "index.ts",
+  "license": "MIT",
+  "devDependencies": {
+    "react": "latest",
+    "typescript": "latest"
+  }
+}

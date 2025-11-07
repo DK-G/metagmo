@@ -1,0 +1,123 @@
+# メタグモ（Meta-Gumo）開発仕様 v0.1
+**目的**：Wikipediaのように「事実（ファクト）」を集積するページを土台に、誰でも**タグ**で主観を可視化できるSNSを構築する。ユーザーは**視界（フィルタ）**を切り替え、ものの見え方の差分を体験できる。
+
+---
+
+## 1. 用語
+- **ページ（Entity）**：対象（人物・作品・出来事・商品・概念…）。  
+- **ファクト（Fact）**：検証可能な事実のみ。**出典必須**。価値判断・推測は禁止。  
+- **タグ（Tag）**：自由表現（評価・連想・意見）。**賛成/反対**投票可。  
+- **視界（View）**：タグ表示ロジック（集計方法）の切替。  
+- **レバレッジ（Leverage）**：フォローに付与する**影響重み（−3〜+3）**。視界「レバレッジ」で効く。
+
+---
+
+## 2. フェーズ定義（MVP → 発展形 → 最終目標）
+
+### 2.1 MVP（最小実装・最短で動く核）
+**ゴール**：誰でも使えて壊れにくい“最小のWiki×タグSNS”を公開。**レバレッジ視界を含む**。
+
+**機能セット**
+1) **ページ / ファクト**
+   - `title / summary`（中立・短文）  
+   - **ファクト作成/編集**：  
+     - 匿名：**提案**として公開しつつ「未レビュー」バッジ  
+     - 登録：即時公開＋「未レビュー」バッジ  
+     - モデレーター：確定/差戻し、半保護（登録者のみ編集）  
+   - **出典URL必須**（一次/二次/公式の別は文字列）
+
+2) **タグ / 投票**
+   - タグ自由入力（最大64字、即時公開）  
+   - `up/down` 投票（匿名可）  
+   - **通報**でしきい値到達→自動一時非表示→モデレビュー
+
+3) **視界（MVPに含むのは3種）**
+   - `flat`：匿名・登録を区別せず人数合計（`score = up - down`）  
+   - `registered_only`：**登録者の投稿・投票のみ**で集計  
+   - `leverage`：**ユーザー固有視界**。自分のレバレッジ設定で票を加重（下記仕様）
+
+4) **レバレッジ（MVP版）**
+   - ユーザーは他ユーザーをフォローし、各フォローに**重み −3〜+3**を設定  
+   - **重み→票の重さ**への変換（MVPの安全版）：  
+     ```
+     weight_u(voter) = clamp( 1 + (w_u(voter)/3), 0, 2 )
+     ```
+     - 未フォロー／匿名は `w=0` → weight=1  
+     - +3 → weight=2、−3 → weight=0（“無視”に近い）  
+     - **負の重みの反転効果はMVPでは採用しない**（説明コスト・悪用防止）。将来版で「逆視点」を提供予定。
+   - **スコア計算（レバレッジ視界）**  
+     ```
+     score_leverage(u) = Σ_vote ( value ∈ {+1, -1} × weight_u(voter) )
+     ```
+
+5) **検索・並び替え**
+   - タイトル/タグ検索（部分一致）  
+   - 並び替え：`score_desc | newest`（視界ごとに計算）
+
+6) **最小の荒らし耐性**
+   - 匿名投稿/投票に **CAPTCHA + クールダウン（例：30秒）**  
+   - 通報しきい値（例：5件）で一時非表示  
+   - ページ半保護（登録者のみタグ/編集可）
+
+**非機能（MVP）**
+- 単一リージョン（日本語UI優先）  
+- 可観測性：Plausible（PV）、簡易アクションログ  
+- SLA（運用目安）：ファクト確定72h、通報レビュー48h
+
+**KPI（30日）**
+- エンティティ200 / タグ1,000  
+- 視界トグル利用率 30％以上  
+- `flat` と `registered_only` の**差分が生じるタグ** 25％以上  
+- 通報→適切非表示（モデ確認ベース）正答率 90％以上
+
+---
+
+### 2.2 発展形（v1.5〜v2）
+**目的**：見え方を増やし、信頼性と操作性を向上。
+
+- **信頼スコア加重視界**：登録ユーザーの貢献度により票重みを微調整  
+  `weight = 1 + log(貢献度+1)`, clamp[1,3]  
+- **タグ同義語マージ**：類似タグの提案マージ  
+- **タグ共起ネットワーク**：関連タグの可視化  
+- **レバレッジ拡張：逆視点**（負重みを**負の加重**として許可）
+  ```
+  weight_u(voter) = 1 + α * w_u(voter)   （例：α=0.25, clamp[-1, 3]）
+  ```
+  “逆視点”では負重みのみで集計する特別表示も提供  
+- **モデ支援**：一括ロールバック、通報理由分析、軽量BOT規則（単純ルール）
+
+---
+
+### 2.3 最終目標（v3+）
+**目的**：**多層の視界**で社会的合意形成と偏りの自覚を支援。
+
+- **地域/層別視界**：日本限定、認証済みユーザー層視界、職能バッジ層視界  
+- **高度BOT/スパム検知**：行動特徴×モデル判定  
+- **オープンデータ**：監査用エクスポート、APIキー公開（レート制限）  
+- **議論支援UI**：論争度ヒートマップ、視界差の解説チップ  
+- **法務整備**：削除請求の正式SLA、透明性レポート、監査ログ開示
+
+---
+
+## 3. データモデル（MVP最小版）
+（略 — 図表は省略）
+
+---
+
+## 12. Gemini CLI 用・最初の指示例
+```
+You are a senior full-stack engineer. 
+Goal: Implement Meta-Gumo MVP per spec.md (sections 2.1, 3~7, 9~10).
+Stack: Next.js (App Router), Supabase (Postgres+Auth), Vercel.
+Deliverables this sprint:
+- DB schema (SQL) for Entity, Fact, Tag, Vote, Follow, basic History
+- API routes listed in section 5
+- Tag list with view toggles (flat/registered/leverage) and sorting
+- Leverage weight UI (profile: follow list with slider -3..+3)
+- CAPTCHA and 30s cooldown for anonymous
+- Moderation: report→auto-hide; simple moderator page
+Constraints:
+- Implement leverage weight formula in 4
+- Tests for scoring queries (flat/registered/leverage)
+- Avoid heavy joins; introduce materialized views if needed
+```
