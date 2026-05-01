@@ -5,15 +5,15 @@ You are a senior full-stack engineer. Your goal is to implement the Meta-Gumo MV
 
 ## Project Overview
 
-Meta-Gumo is a social media platform that aims to visualize subjectivity by allowing users to add tags to "fact" pages. Users can switch between different "views" (filters) to see how perceptions differ.
+Meta-Gumo is a platform where **the same thing looks different depending on whose voices you count**. By switching "views" (population filters), users experience how perception shifts — not as a lesson, but as a casual discovery that accumulates into subtle self-awareness.
 
-*   **Core Concept:** A Wiki-like platform for objective facts, enriched with a social layer of subjective tags and viewpoints.
+*   **Core Concept:** Facts (objective, sourced) form the foundation. Tags (subjective labels) layer on top. Views filter *who* is counted, changing the apparent consensus. The gap between views IS the product.
 *   **Key Features:**
     *   **Pages (Entities):** Neutral, fact-based articles.
     *   **Facts:** Verifiable facts with required sources.
     *   **Tags:** Subjective labels (evaluations, associations, opinions) with up/down voting.
-    *   **Views (Visions):** Different ways to aggregate and display tag scores (`flat`, `registered_only`, `leverage`).
-    *   **Leverage:** A system where users can assign weights to other users' influence on their personalized "leverage" view.
+    *   **Views (Visions):** Population filters that change which voices are counted (`flat`, `registered_only`, `leverage`; future: `ip_addr_only`, `no_bot`, `japan_ip_only`, `mynumber_verified`).
+    *   **Leverage:** A system where users assign weights (−3〜+3) to followed users, creating a personalized view weighted by their social graph.
 
 ## Tech Stack
 

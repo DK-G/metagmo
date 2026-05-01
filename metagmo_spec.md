@@ -36,6 +36,8 @@
    - `registered_only`：**登録者の投稿・投票のみ**で集計  
    - `leverage`：**ユーザー固有視界**。自分のレバレッジ設定で票を加重（下記仕様）
 
+   > **匿名ユーザーの同一タグへの複数投票は意図的に許容する**。「あらゆる声をそのまま集める」のが`flat`の原則であり、その生の集計も一つの傾向として価値がある。IPアドレスを記録しておき、将来の`ip_addr_only`視界でIP単位の重複除去した角度を別途提供する。
+
 4) **レバレッジ（MVP版）**
    - ユーザーは他ユーザーをフォローし、各フォローに**重み −3〜+3**を設定  
    - **重み→票の重さ**への変換（MVPの安全版）：  
@@ -83,6 +85,8 @@
 ### 2.2 発展形（v1.5〜v2）
 **目的**：見え方を増やし、信頼性と操作性を向上。
 
+- **`ip_addr_only`視界**：匿名投票をIPアドレス単位で重複除去して集計（同一IPからの連続投票を1票として扱う）
+- **`no_bot`視界**：1日あたり投稿数100件以上のユーザーを除外した集計。BOT・依存ユーザーを省いた傾向を見る
 - **信頼スコア加重視界**：登録ユーザーの貢献度により票重みを微調整  
   `weight = 1 + log(貢献度+1)`, clamp[1,3]  
 - **タグ同義語マージ**：類似タグの提案マージ  
@@ -99,7 +103,10 @@
 ### 2.3 最終目標（v3+）
 **目的**：**多層の視界**で社会的合意形成と偏りの自覚を支援。
 
-- **地域/層別視界**：日本限定、認証済みユーザー層視界、職能バッジ層視界  
+- **地域/層別視界**：
+  - `japan_ip_only`：日本国内IPのみ（例：同一ニュースへの国内外の反応差が一目でわかる）
+  - `mynumber_verified`：マイナンバーカード連携済みユーザーのみ（実名市民の声）
+  - 職能バッジ層視界  
 - **高度BOT/スパム検知**：行動特徴×モデル判定  
 - **オープンデータ**：監査用エクスポート、APIキー公開（レート制限）  
 - **議論支援UI**：論争度ヒートマップ、視界差の解説チップ  
@@ -112,20 +119,3 @@
 
 ---
 
-## 12. Gemini CLI 用・最初の指示例
-```
-You are a senior full-stack engineer. 
-Goal: Implement Meta-Gumo MVP per spec.md (sections 2.1, 3~7, 9~10).
-Stack: Next.js (App Router), Supabase (Postgres+Auth), Vercel.
-Deliverables this sprint:
-- DB schema (SQL) for Entity, Fact, Tag, Vote, Follow, basic History
-- API routes listed in section 5
-- Tag list with view toggles (flat/registered/leverage) and sorting
-- Leverage weight UI (profile: follow list with slider -3..+3)
-- CAPTCHA and 30s cooldown for anonymous
-- Moderation: report→auto-hide; simple moderator page
-Constraints:
-- Implement leverage weight formula in 4
-- Tests for scoring queries (flat/registered/leverage)
-- Avoid heavy joins; introduce materialized views if needed
-```

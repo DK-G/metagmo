@@ -15,7 +15,8 @@ CREATE TABLE facts (
     entity_id UUID NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     source_url TEXT NOT NULL,
-    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL, -- Assuming Supabase auth.users table
+    source_type TEXT, -- '一次', '二次', '公式' など
+    created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     status TEXT DEFAULT 'pending_review' -- 'pending_review', 'approved', 'rejected'
@@ -33,13 +34,16 @@ CREATE TABLE tags (
 );
 
 -- Table: votes (投票)
+-- 匿名の同一タグへの複数投票は意図的に許容（flat視界の原則）。
+-- ip_address を記録し ip_addr_only 視界でのIP単位重複除去に使用する。
 CREATE TABLE votes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    ip_address INET,
     vote_type TEXT NOT NULL CHECK (vote_type IN ('up', 'down')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE (tag_id, user_id) -- A user can only vote once per tag
+    UNIQUE (tag_id, user_id) -- 登録ユーザーのみ1票制約（NULL同士は別値扱いのため匿名は対象外）
 );
 
 -- Table: follows (レバレッジ)
