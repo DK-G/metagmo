@@ -59,6 +59,31 @@
 - 単一リージョン（日本語UI優先）
 - 可観測性：簡易アクションログ
 
+**MVP Non-goals**
+- ログイン / Supabase Auth の導入
+- `registered_only` 視界
+- 信頼スコア加重視界
+- レバレッジ視界とフォロー重み UI
+- CAPTCHA / 30秒クールダウン
+- 通報、モデレーション、BOT/スパム検知
+- タグ同義語マージ、タグ共起ネットワーク
+
+**MVP Non-negotiable Constraints**
+- ファクトは検証可能な事実のみとし、出典URLを必須にする。
+- MVP はログイン不要・認証なし・匿名利用を前提にする。
+- ワードクラウドの単語サイズは `up - down`（ネットスコア）を基準にする。
+- 視界ボタンは「未押し → 1回目 → 2回目 → 未押し」の3状態循環を守る。
+- 直近一週間 / 合意 / 論争 の集計条件は本仕様の表に合わせる。
+- 重いDB結合を避け、必要な場合のみマテリアライズドビュー等を検討する。
+
+**MVP Done Conditions**
+- MVP 最小版の DB schema が `entities`, `facts`, `tags`, `votes`, `history` を扱える。
+- 認証なし API routes が Entity / Fact / Tag / Vote の基本操作を提供する。
+- ページに紐づくタグをワードクラウドで表示できる。
+- 直近一週間 / 合意 / 論争 の3視界ボタンが仕様どおり動作する。
+- タイトル / タグ検索と `score_desc` / `newest` の並び替えが動作する。
+- README または task に、起動・検証コマンドと未検証点が記録されている。
+
 **KPI（30日）**
 - エンティティ 200 / タグ 1,000
 - 視界ボタン利用率 30% 以上
@@ -107,20 +132,9 @@
 
 ---
 
-## 12. AI CLI 用・指示例
-```
-You are a senior full-stack engineer.
-Goal: Implement Meta-Gumo MVP per spec.md (sections 2.1, 3).
-Stack: Next.js (App Router), Supabase (Postgres), Vercel.
-Deliverables this sprint:
-- DB schema (SQL) for Entity, Fact, Tag, Vote, basic History (no auth)
-- API routes for entities, facts, tags, votes (no authentication required)
-- Word cloud display for tags (word size = up - down score)
-- Default view: show up/down/total counts per tag (fallback: total only)
-- 3 toggle buttons: 直近一週間, 合意, 論争 (each with inverse on second press)
-- Tag list search (partial match) and sort (score_desc / newest)
-Constraints:
-- No login / no authentication in MVP
-- Implement button logic as defined in section 2.1 view button spec
-- Avoid heavy joins; introduce materialized views if needed
-```
+## 4. 実装時の参照
+
+- 作業開始時は `AGENTS.md` の読み順に従う。
+- 現在作業は `task.md` を正とする。
+- 工程管理は `RoadMap.md` を参照する。
+- 本仕様はプロダクトスコープ、データモデル、MVP の不変条件を判断するための上位文書とする。
