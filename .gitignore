@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+dist/
+build/
+coverage/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+.secrets/
+secrets/
+credentials.json
+token.json
+*.pem
+*.key
+*.p12
+*.jks
+
+# Local databases and exports
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+exports/
+data/
+
+# Logs and temporary files
+*.log
+logs/
+tmp/
+temp/
+
+# Vercel
+.vercel/

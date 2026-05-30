@@ -1,5 +1,8 @@
 # メタグモ タスクリスト
 
+# 公開準備
+- [x] Git公開準備: Supabase/Vercel の環境変数、credential、DB dump、ローカルデータを除外する `.gitignore` を追加
+
 # チェックリスト
 1. [x] R1-1 DBスキーマ定義
 2. [ ] R1-2 APIルート実装
