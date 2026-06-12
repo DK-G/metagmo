@@ -21,28 +21,25 @@ Meta-Gumo is a platform where **the same thing looks different depending on whos
 *   **Backend:** Supabase (PostgreSQL + Auth)
 *   **Deployment:** Vercel
 
-## Initial Sprint Goals (MVP)
+## Current Sprint Goals (MVP)
 
 1.  **Database Schema:**
     *   Create SQL schema for: `Entity`, `Fact`, `Tag`, `Vote`, `Follow`, and basic `History`.
 2.  **API Routes:**
-    *   Implement the API routes as defined in the specification (section 5 of `metagumo_spec.md`).
-3.  **Frontend - Tag Interaction:**
-    *   Display a list of tags for a page.
-    *   Implement view toggles for `flat`, `registered_only`, and `leverage` views.
+    *   Implement anonymous MVP API routes for entities, facts, tags, and votes as defined in `metagumo_spec.md`.
+3.  **Frontend - Word Cloud and Views:**
+    *   Display tags for a page as a word cloud.
+    *   Size words by `up - down` net score.
+    *   Implement the three MVP view toggles: `直近一週間`, `合意`, and `論争`.
     *   Implement sorting options (`score_desc`, `newest`).
-4.  **Frontend - Leverage UI:**
-    *   Create a user profile page.
-    *   Display a list of followed users with a slider to adjust their leverage weight from -3 to +3.
-5.  **Anti-Abuse Measures:**
-    *   Implement CAPTCHA for anonymous users.
-    *   Add a 30-second cooldown for anonymous votes/posts.
-6.  **Moderation:**
-    *   Implement a reporting system that automatically hides content after a certain threshold.
-    *   Create a simple page for moderators to review reported content.
+4.  **Search:**
+    *   Implement title/tag partial-match search.
 
 ## Development Conventions & Constraints
 
-*   **Leverage Formula:** Strictly implement the leverage weight formula as defined in section 4 of `metagumo_spec.md`.
-*   **Testing:** Write tests for the scoring queries (`flat`, `registered_only`, `leverage`).
+*   **MVP Scope:** No login, no authentication, no `registered_only`, no `leverage`, no CAPTCHA, and no moderation in the MVP unless `metagumo_spec.md` is updated first.
+*   **Fact Rules:** Facts must be verifiable and require a source URL.
+*   **View Logic:** Strictly implement the three MVP view button rules in `metagumo_spec.md`.
+*   **Testing:** Prefer tests for MVP scoring queries (`直近一週間`, `合意`, `論争`) and search/sort behavior.
 *   **Performance:** Avoid heavy database joins. Use materialized views if necessary to improve performance.
+*   **Agent Entry:** `AGENTS.md` is the current coding-agent entrypoint. This file is supplementary context only.

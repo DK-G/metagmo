@@ -7,9 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "yarn workspace web dev",
-    "build": "yarn workspace web build",
-    "start": "yarn workspace web start",
-    "lint": "yarn workspace web lint"
-  }
+    "dev": "npm --workspace apps/web run dev",
+    "build": "npm --workspace apps/web run build",
+    "start": "npm --workspace apps/web run start",
+    "lint": "npm --workspace apps/web run lint"
+  },
+  "packageManager": "npm@10.8.2"
 }
