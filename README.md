@@ -7,7 +7,7 @@
 - `packages/ui-components/`: 共有UIコンポーネント。
 - `packages/utils/`: 共通ユーティリティ関数。
 - `packages/types/`: 共有型定義。
-- `docs/`: 詳細仕様、計画ドキュメント (`metagumo_spec.md`など)。
+- `docs/`: 詳細仕様、計画ドキュメント (`metagmo_spec.md`など)。
 - `scripts/`: リポジトリユーティリティ。
 - `GEMINI.md`, `RoadMap.md`, `task.md`: 開発計画と日々のタスク管理用ドキュメント。
 
@@ -46,7 +46,7 @@
 - コード変更時は `yarn lint` と必要なテストを実行し、結果を控えておく。
 
 ## 参考ドキュメント
-- `metagumo_spec.md`: メタグモの全体仕様書。
+- `metagmo_spec.md`: メタグモの全体仕様書。
 - `GEMINI.md`: Gemini CLIとの対話のためのプロジェクト概要と開発方針。
 - `RoadMap.md`: バージョン別タスク一覧。
 - `task.md`: 進行中の詳細タスクとログ。

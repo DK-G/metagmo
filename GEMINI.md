@@ -1,7 +1,7 @@
 
 # Meta-Gumo (メタグモ) Development Context
 
-You are a senior full-stack engineer. Your goal is to implement the Meta-Gumo MVP as specified in `metagumo_spec.md`.
+You are a senior full-stack engineer. Your goal is to implement the Meta-Gumo MVP as specified in `metagmo_spec.md`.
 
 ## Project Overview
 
@@ -26,7 +26,7 @@ Meta-Gumo is a platform where **the same thing looks different depending on whos
 1.  **Database Schema:**
     *   Create SQL schema for: `Entity`, `Fact`, `Tag`, `Vote`, `Follow`, and basic `History`.
 2.  **API Routes:**
-    *   Implement anonymous MVP API routes for entities, facts, tags, and votes as defined in `metagumo_spec.md`.
+    *   Implement anonymous MVP API routes for entities, facts, tags, and votes as defined in `metagmo_spec.md`.
 3.  **Frontend - Word Cloud and Views:**
     *   Display tags for a page as a word cloud.
     *   Size words by `up - down` net score.
@@ -37,9 +37,9 @@ Meta-Gumo is a platform where **the same thing looks different depending on whos
 
 ## Development Conventions & Constraints
 
-*   **MVP Scope:** No login, no authentication, no `registered_only`, no `leverage`, no CAPTCHA, and no moderation in the MVP unless `metagumo_spec.md` is updated first.
+*   **MVP Scope:** No login, no authentication, no `registered_only`, no `leverage`, no CAPTCHA, and no moderation in the MVP unless `metagmo_spec.md` is updated first.
 *   **Fact Rules:** Facts must be verifiable and require a source URL.
-*   **View Logic:** Strictly implement the three MVP view button rules in `metagumo_spec.md`.
+*   **View Logic:** Strictly implement the three MVP view button rules in `metagmo_spec.md`.
 *   **Testing:** Prefer tests for MVP scoring queries (`直近一週間`, `合意`, `論争`) and search/sort behavior.
 *   **Performance:** Avoid heavy database joins. Use materialized views if necessary to improve performance.
 *   **Agent Entry:** `AGENTS.md` is the current coding-agent entrypoint. This file is supplementary context only.
