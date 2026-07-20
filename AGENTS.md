@@ -1,6 +1,6 @@
 # Project Agent Guide
 
-This project is managed from the portfolio workspace at `C:\dev\portfolio`.
+This project is managed from the portfolio workspace at `D:\dev`.
 Coding sessions should normally start in this project folder. This file is the
 local entrypoint for agents working on this project.
 
@@ -8,9 +8,8 @@ local entrypoint for agents working on this project.
 
 Use these shared files as the source of truth for cross-project behavior:
 
-- Common guide: `C:\dev\portfolio\AGENTS.md`
-- Shared routines: `C:\dev\portfolio\docs\skills\`
-- Portfolio playbooks: `C:\dev\portfolio\playbooks\`
+- Common guide: `D:\dev\AGENTS.md`
+- Shared routines: `D:\dev\docs\skills\`
 
 Keep this file focused on project-specific context. Do not copy the full shared
 routine bodies into this project.
@@ -29,12 +28,12 @@ Read local files in this order:
 
 When the user invokes one of these names, read the matching portfolio routine:
 
-- `bynote`: `C:\dev\portfolio\docs\skills\bynote.md`
-- `bythink`: `C:\dev\portfolio\docs\skills\bythink.md`
-- `bycheck`: `C:\dev\portfolio\docs\skills\bycheck.md`
-- `bygit`: `C:\dev\portfolio\docs\skills\bygit.md`
-- `bystitch`: `C:\dev\portfolio\docs\skills\bystitch.md`
-- `bysearch`: `C:\dev\portfolio\docs\skills\bysearch.md`
+- `bynote`: `D:\dev\docs\skills\bynote.md`
+- `bythink`: `D:\dev\docs\skills\bythink.md`
+- `bycheck`: `D:\dev\docs\skills\bycheck.md`
+- `bygit`: `D:\dev\docs\skills\bygit.md`
+- `bystitch`: `D:\dev\docs\skills\bystitch.md`
+- `bysearch`: `D:\dev\docs\skills\bysearch.md`
 
 If the shared file cannot be read, continue with the same intent using local
 primary sources and mention the unavailable shared file in the result.
