@@ -60,7 +60,7 @@
 - 可観測性：簡易アクションログ
 
 **MVP Non-goals**
-- ログイン / Supabase Auth の導入
+- ログイン・認証の導入
 - `registered_only` 視界
 - 信頼スコア加重視界
 - レバレッジ視界とフォロー重み UI
@@ -102,7 +102,7 @@
 ### 2.2 発展形（v1.5〜v2）
 **目的**：見え方を増やし、信頼性と操作性を向上。
 
-- **ログイン・認証導入**：Supabase Auth と連携
+- **ログイン・認証導入**：方式は未定。MVP の土台は Cloudflare Workers + D1 で、導入を決めた時に土台を見直す（`spec.md` §7）
 - **登録者のみ視界**：`registered_only` — 登録者の投票のみ集計
 - **信頼スコア加重視界**：登録ユーザーの貢献度により票重みを微調整
   `weight = 1 + log(貢献度+1)`, clamp[1,3]
@@ -136,7 +136,7 @@
 
 ## 3. データモデル（MVP最小版）
 
-`docs/db-schema.sql` を参照。テーブル構成：`entities`, `facts`, `tags`, `votes`, `follows`（発展形用）, `history`
+`apps/worker/migrations/` を参照（D1）。テーブル構成：`entities`, `facts`, `tags`, `votes`, `history`。MVP はログインなしなので、利用者を指す列（`created_by` / `user_id`）は任意。`follows`（発展形用）は MVP の D1 には作っておらず、ログイン導入を決めた時に足す。
 
 ---
 
