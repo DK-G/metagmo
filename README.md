@@ -15,25 +15,24 @@
 - **フレームワーク:** Next.js (App Router, TypeScript)
 - **バックエンド:** Supabase (PostgreSQL, Auth)
 - **デプロイ:** Vercel
-- **モノレポ管理:** Yarn Workspaces
+- **モノレポ管理:** npm workspaces
 - **状態管理:** React Hooks / Context (または適宜ライブラリを導入)
 - **UI:** Tailwind CSS (または適宜UIライブラリを導入)
 - **テスト:** Jest, React Testing Library (E2EはPlaywrightなどを検討)
 
 ## 必須環境
 - Node.js 18 以上。
-- Yarn 1.x（Workspaces 利用）。
+- npm 10 以上（workspaces 利用。`package.json` の `packageManager` は `npm@10.8.2`）。
 
 ## 初期セットアップ
-1. 依存関係を一括インストール: `yarn install`
+1. 依存関係を一括インストール: `npm install`
 2. 環境変数の設定: `.env.local` ファイルを作成し、SupabaseのAPIキーなどを設定します。
-3. 開発サーバー起動: `yarn dev`
+3. 開発サーバー起動: `npm run dev`
 
 ## 開発時によく使うコマンド
-- リント: `yarn lint`
-- フォーマット: `yarn fmt` / `yarn fmt:check`
-- テスト: `yarn test`
-- ビルド: `yarn build`
+- リント: `npm run lint`
+- 本番起動: `npm run start`
+- ビルド: `npm run build`
 
 ## 進め方
 - プロジェクトの全体像と目的は `GEMINI.md` を参照してください。
@@ -43,7 +42,7 @@
 ## コミットと PR 方針
 - Conventional Commits (`type(scope?): summary`) を採用。
 - 1 コミット 1 トピックを心がけ、関連タスク番号をメッセージや PR 説明に記載。
-- コード変更時は `yarn lint` と必要なテストを実行し、結果を控えておく。
+- コード変更時は `npm run lint` と必要なテストを実行し、結果を控えておく。
 
 ## 参考ドキュメント
 - `metagmo_spec.md`: メタグモの全体仕様書。

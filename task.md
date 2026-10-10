@@ -6,7 +6,7 @@
   1. **R1-2 APIルート実装（認証なし・entities / facts / tags / votes）** — 仕様は `metagmo_spec.md` §5。
   2. R1-3 ワードクラウド表示（単語サイズ = ネットスコア）。
   3. R1-4 視界ボタン3つ（直近一週間・合意・論争）のトグル。
-- ブロッカー/外部待ち: ①**package manager が未確定** — README は「Yarn 1.x / Yarn Workspaces」、`package.json` は `packageManager: npm@10.8.2` を宣言し scripts も npm workspaces。**依存作業の前に解消する**。②**テストが存在しない** — root scripts は dev / build / start / lint のみで `test` 未定義＝受け入れ検証の手段が無い。
+- ブロッカー/外部待ち: ①package manager は **npm に統一済み**（2026-10-10・README ほかの記述を修正、依存の版を `latest` から固定）。②**テストが存在しない** — root scripts は dev / build / start / lint のみで `test` 未定義＝受け入れ検証の手段が無い。
 - ★**タスク番号の正 = `RoadMap.md` の R1 成果物 ＝ `task.md` のチェックリスト（R1-1 DBスキーマ / R1-2 API / R1-3 ワードクラウド / R1-4 視界ボタン / R1-5 タグ検索・ソート）**。`CLAUDE.md` L86-91 は R1-3 以降が独自番号で、R1-4 に **R2 スコープ**の「レバレッジ重み設定UI」を置いており誤り。task.md 内でも R1-5 がチェックリスト（タグ検索・ソート）と詳細節（CAPTCHA/クールダウン）で二重定義。**番号で迷ったらこのブロックを入口とすること**（他2文書は今回未修正）。
 <!-- CURRENT-END -->
 

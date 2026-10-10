@@ -44,4 +44,4 @@ primary sources and mention the unavailable shared file in the result.
 - Main commands: `npm run dev`, `npm run build`, `npm run lint`; root scripts delegate to `apps/web`.
 - Deployment target: Vercel is documented as the current target; confirm before changing deploy configuration.
 - Important constraints: MVP currently allows anonymous API routes; implement R1 tasks against `metagmo_spec.md`; preserve the 3-view filter model (recent week, consensus, controversy); keep workspace boundaries between `apps/*` and `packages/*`.
-- Known risks: README mentions Yarn 1.x but `package.json` declares `npm@10.8.2`; resolve package-manager ambiguity before dependency work. Current active work is API routes and word-cloud UI.
+- Package manager: npm only (`packageManager: npm@10.8.2`, `package-lock.json`); dependency versions are pinned exactly, do not use `latest`. Current active work is API routes and word-cloud UI.

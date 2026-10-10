@@ -22,23 +22,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # 依存関係インストール
-yarn install
+npm install
 
 # 開発サーバー起動
-yarn dev
+npm run dev
 
 # ビルド
-yarn build
+npm run build
 
 # リント
-yarn lint
+npm run lint
 ```
 
-テストや `fmt` / `fmt:check` はまだ `package.json` に定義されていないが、仕様では Jest + React Testing Library を使用予定。追加時は `yarn test` で実行する。
+テストや `fmt` / `fmt:check` はまだ `package.json` に定義されていないが、仕様では Jest + React Testing Library を使用予定。追加時は `npm test` で実行する。
 
 ## アーキテクチャ
 
-### モノレポ構成（Yarn Workspaces）
+### モノレポ構成（npm workspaces）
 
 ```
 apps/web/          # Next.js (App Router, TypeScript) — メインアプリ

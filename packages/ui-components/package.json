@@ -4,7 +4,7 @@
   "main": "index.ts",
   "license": "MIT",
   "devDependencies": {
-    "react": "latest",
-    "typescript": "latest"
+    "react": "19.2.6",
+    "typescript": "6.0.3"
   }
 }

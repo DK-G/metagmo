@@ -21,7 +21,7 @@
 | フレームワーク | Next.js (App Router) + TypeScript | - | SSR・API統合・Vercelデプロイとの親和性 |
 | バックエンド | Supabase (PostgreSQL + Auth) | - | Auth・DB・RLSを一体管理 |
 | デプロイ | Vercel | - | Next.jsとの相性 |
-| モノレポ管理 | Yarn Workspaces | 1.x | パッケージ間依存管理 |
+| モノレポ管理 | npm workspaces | 10.x | パッケージ間依存管理 |
 | スタイル | Tailwind CSS | - | - |
 | テスト | Jest / React Testing Library | - | Playwright (E2E検討中) |
 
@@ -81,11 +81,10 @@ leverage      — フォロー中ユーザーの重み付き合算（-3〜+3ス�
 - **DB**: PostgreSQL（Supabase）。テーブル名はスネークケース。
 - **コミット**: Conventional Commits（`type(scope?): summary`）。1コミット1トピック。
 - **コマンド**:
-  - `yarn dev` — 開発サーバー
-  - `yarn build` — ビルド
-  - `yarn lint` — リント
-  - `yarn fmt` / `yarn fmt:check` — フォーマット
-  - `yarn test` — テスト
+  - `npm run dev` — 開発サーバー
+  - `npm run build` — ビルド
+  - `npm run lint` — リント
+  - フォーマット・テストのコマンドは未定義
 
 -----
 
