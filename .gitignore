@@ -37,3 +37,7 @@ temp/
 
 # Vercel
 .vercel/
+
+# Cloudflare (wrangler / miniflare のローカル状態)
+.wrangler/
+.dev.vars
