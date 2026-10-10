@@ -6,13 +6,17 @@
   "scripts": {
     "dev": "wrangler dev",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "1.4.0",
     "@cloudflare/workers-types": "5.20261010.1",
+    "@eslint/js": "9.39.4",
     "@types/node": "25.6.2",
+    "eslint": "9.39.4",
     "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
     "vitest": "4.1.11",
     "wrangler": "4.149.0"
   }

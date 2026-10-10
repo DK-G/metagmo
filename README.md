@@ -4,7 +4,6 @@
 
 ## リポジトリ構成
 - `apps/worker/`: 本体の Cloudflare Worker（TypeScript）。`migrations/` に D1 の表、`test/` に手元の D1 で動くテスト。
-- `apps/web/`: 旧計画の雛形。使っていません（Worker がページを返すようになった時に消します）。
 - `packages/ui-components/`: 共有UIコンポーネント。
 - `packages/utils/`: 共通ユーティリティ関数。
 - `packages/types/`: 共有型定義。
@@ -31,7 +30,7 @@
 ## 開発時によく使うコマンド
 - テスト: `npm test`
 - 型検査: `npm run typecheck`
-- リント: `npm run lint`（今は `apps/web` だけが対象）
+- リント: `npm run lint`（`apps/worker` が対象）
 
 ## 進め方
 - プロジェクトの全体像と目的は `GEMINI.md` を参照してください。

@@ -85,7 +85,7 @@ leverage      — フォロー中ユーザーの重み付き合算（-3〜+3ス�
 - **コマンド**:
   - `npm test` — テスト（手元の D1）
   - `npm run typecheck` — 型検査
-  - `npm run lint` — リント（今は `apps/web` だけが対象）
+  - `npm run lint` — リント（`apps/worker` が対象。eslint + typescript-eslint）
   - `npm --workspace apps/worker run dev` — Worker を手元で起動
   - フォーマットのコマンドは未定義
 

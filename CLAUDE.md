@@ -33,7 +33,7 @@ npm run typecheck
 # Worker を手元で起動
 npm --workspace apps/worker run dev
 
-# リント（今は apps/web だけが対象）
+# リント（apps/worker が対象）
 npm run lint
 ```
 
@@ -45,7 +45,6 @@ npm run lint
 
 ```
 apps/worker/       # Cloudflare Worker (TypeScript) + D1 — API とページの両方を返す本体
-apps/web/          # 旧計画の雛形。使わない（Worker がページを返すようになった時に消す）
 packages/types/    # 共有型定義
 packages/ui-components/  # 共有UIコンポーネント
 packages/utils/    # 共通ユーティリティ

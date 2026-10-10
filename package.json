@@ -7,10 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm --workspace apps/web run dev",
-    "build": "npm --workspace apps/web run build",
-    "start": "npm --workspace apps/web run start",
-    "lint": "npm --workspace apps/web run lint",
+    "dev": "npm --workspace apps/worker run dev",
+    "lint": "npm --workspace apps/worker run lint",
     "test": "npm --workspace apps/worker run test",
     "typecheck": "npm --workspace apps/worker run typecheck"
   },
