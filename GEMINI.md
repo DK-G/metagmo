@@ -17,9 +17,9 @@ Meta-Gumo is a platform where **the same thing looks different depending on whos
 
 ## Tech Stack
 
-*   **Framework:** Next.js (with App Router)
-*   **Backend:** Supabase (PostgreSQL + Auth)
-*   **Deployment:** Vercel
+*   **Platform:** Cloudflare Workers + D1 (TypeScript). The Worker serves both the API and the HTML pages.
+*   **Tests:** vitest against a local D1 (`npm test`)
+*   **Login:** none in the MVP. Revisit the platform when login is introduced. Decision record: `spec.md` §7 (2026-10-10).
 
 ## Current Sprint Goals (MVP)
 

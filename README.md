@@ -1,9 +1,10 @@
 # メタグモ (metagmo) モノレポ概要
 
-メタグモは、Wikipediaのように「事実（ファクト）」を集積するページを土台に、誰でもタグで主観を可視化できるSNSを構築するプロジェクトです。ユーザーは視界（フィルタ）を切り替え、ものの見え方の差分を体験できます。このリポジトリは、Next.jsクライアントとSupabaseバックエンドを統合したモノレポとして構成されています。
+メタグモは、Wikipediaのように「事実（ファクト）」を集積するページを土台に、誰でもタグで主観を可視化できるSNSを構築するプロジェクトです。ユーザーは視界（フィルタ）を切り替え、ものの見え方の差分を体験できます。このリポジトリは、Cloudflare Workers と D1 の上に載る npm workspaces のモノレポです。Worker が API とページの両方を返します。
 
 ## リポジトリ構成
-- `apps/web/`: Next.jsクライアントアプリケーション。画面・ナビゲーション・UIロジックを格納。
+- `apps/worker/`: 本体の Cloudflare Worker（TypeScript）。`migrations/` に D1 の表、`test/` に手元の D1 で動くテスト。
+- `apps/web/`: 旧計画の雛形。使っていません（Worker がページを返すようになった時に消します）。
 - `packages/ui-components/`: 共有UIコンポーネント。
 - `packages/utils/`: 共通ユーティリティ関数。
 - `packages/types/`: 共有型定義。
@@ -12,13 +13,11 @@
 - `GEMINI.md`, `RoadMap.md`, `task.md`: 開発計画と日々のタスク管理用ドキュメント。
 
 ## 技術スタック
-- **フレームワーク:** Next.js (App Router, TypeScript)
-- **バックエンド:** Supabase (PostgreSQL, Auth)
-- **デプロイ:** Vercel
+- **土台:** Cloudflare Workers + D1（TypeScript）。決定の経緯と見直す条件は `spec.md` §7。
+- **画面:** Worker がページの HTML を返します。
 - **モノレポ管理:** npm workspaces
-- **状態管理:** React Hooks / Context (または適宜ライブラリを導入)
-- **UI:** Tailwind CSS (または適宜UIライブラリを導入)
-- **テスト:** Jest, React Testing Library (E2EはPlaywrightなどを検討)
+- **テスト:** vitest + `@cloudflare/vitest-pool-workers`（手元の D1）
+- **ログイン:** MVP にはありません。導入を決めた時に土台を見直します。
 
 ## 必須環境
 - Node.js 18 以上。
@@ -26,13 +25,13 @@
 
 ## 初期セットアップ
 1. 依存関係を一括インストール: `npm install`
-2. 環境変数の設定: `.env.local` ファイルを作成し、SupabaseのAPIキーなどを設定します。
-3. 開発サーバー起動: `npm run dev`
+2. テスト: `npm test`（手元の D1 に `apps/worker/migrations/` を当てて実行します。鍵や環境変数は要りません）
+3. Worker を手元で起動: `npm --workspace apps/worker run dev`
 
 ## 開発時によく使うコマンド
-- リント: `npm run lint`
-- 本番起動: `npm run start`
-- ビルド: `npm run build`
+- テスト: `npm test`
+- 型検査: `npm run typecheck`
+- リント: `npm run lint`（今は `apps/web` だけが対象）
 
 ## 進め方
 - プロジェクトの全体像と目的は `GEMINI.md` を参照してください。

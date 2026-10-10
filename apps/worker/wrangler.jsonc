@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "metagmo",
+  "main": "src/index.ts",
+  // テストの実行環境（vitest-pool-workers 同梱の workerd）が対応する最新日付に合わせている。
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "metagmo",
+      // 本番の D1 をまだ作っていないので仮の値。公開前に `wrangler d1 create metagmo` の値へ差し替える。
+      // 手元の開発とテストはこの値のままで動く。
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

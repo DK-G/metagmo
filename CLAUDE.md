@@ -24,45 +24,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # 依存関係インストール
 npm install
 
-# 開発サーバー起動
-npm run dev
+# テスト（手元の D1 で動く。vitest）
+npm test
 
-# ビルド
-npm run build
+# 型検査
+npm run typecheck
 
-# リント
+# Worker を手元で起動
+npm --workspace apps/worker run dev
+
+# リント（今は apps/web だけが対象）
 npm run lint
 ```
 
-テストや `fmt` / `fmt:check` はまだ `package.json` に定義されていないが、仕様では Jest + React Testing Library を使用予定。追加時は `npm test` で実行する。
+`fmt` / `fmt:check` はまだ定義されていない。
 
 ## アーキテクチャ
 
 ### モノレポ構成（npm workspaces）
 
 ```
-apps/web/          # Next.js (App Router, TypeScript) — メインアプリ
+apps/worker/       # Cloudflare Worker (TypeScript) + D1 — API とページの両方を返す本体
+apps/web/          # 旧計画の雛形。使わない（Worker がページを返すようになった時に消す）
 packages/types/    # 共有型定義
 packages/ui-components/  # 共有UIコンポーネント
 packages/utils/    # 共通ユーティリティ
-docs/              # 仕様書・DBスキーマ
+docs/              # 仕様書
 ```
 
 ### 技術スタック
-- **フロントエンド**: Next.js App Router + TypeScript
-- **バックエンド**: Supabase (PostgreSQL + Auth)
-- **デプロイ**: Vercel
+- **土台**: Cloudflare Workers + D1（2026-10-10 決定。経緯と見直す条件は `spec.md` §7）
+- **画面**: Worker がページの HTML を返す（各ページを検索結果と X のカードに載せるため）
+- **テスト**: vitest + `@cloudflare/vitest-pool-workers`（手元の D1）
+- **ログイン**: MVP には無い。導入を決めた時に土台を見直す
 - **スタイル**: Tailwind CSS（導入予定）
 
-### DBスキーマ（`docs/db-schema.sql`）
+### DBスキーマ（`apps/worker/migrations/`）
 
 主要テーブルと関係：
 - `entities` → `facts`（1対多）、`tags`（1対多）
 - `tags` → `votes`（1対多）
-- `auth.users` → `follows`（多対多、`weight` INTEGER −3〜+3 付き）
-- `history`：ユーザーアクションの監査ログ（`target_type` + `target_id` + `details JSONB`）
+- `history`：操作の記録（`target_type` + `target_id` + `details`＝JSON の文字列）
+- `follows`（フォローの重み −3〜+3）は発展形の表で、MVP の D1 には作っていない。ログイン導入を決めた時に足す
 
-`votes` は `(tag_id, user_id)` でUNIQUE制約あり（1ユーザー1タグ1票）。
+MVP はログインなしなので、利用者を指す列（`created_by` / `user_id`）は任意。`votes` の `(tag_id, user_id)` UNIQUE は利用者つきの票にだけ効き、匿名の票は同じタグへ何票でも入る。
 
 ### スコア計算ロジック（重要）
 
@@ -83,7 +88,7 @@ score_leverage(u) = Σ_vote(value ∈ {+1, -1} × weight_u(voter))
 - コミットは Conventional Commits 形式：`type(scope?): summary`
 
 ### 現在の進捗
-- [x] R1-1: DBスキーマ定義（`docs/db-schema.sql`）
+- [x] R1-1: DBスキーマ定義（`apps/worker/migrations/0001_init.sql`）
 - [ ] R1-2: APIルート実装（`metagmo_spec.md` セクション5参照）
 - [ ] R1-3: タグリスト/視界トグル/ソート機能
 - [ ] R1-4: レバレッジ重み設定UI

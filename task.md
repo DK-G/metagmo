@@ -1,13 +1,13 @@
 <!-- CURRENT-START / ここだけを常に最新に保つ。ここより下は履歴で、読むのは必要時のみ。 -->
-## 現在地（2026-07-25）
-- フェーズ: **R1 MVP（ログイン不要・ワードクラウド版）。完了は R1-1 DBスキーマのみ。** `apps/web/src` は `layout.jsx` / `page.jsx` / `globals.css` の3ファイル＝create-next-app 直後のスキャフォールドで、機能実装は未着手（`.ts`/`.tsx` は0件）。コードの最終変更は 2026-06-12 のマージで、以後は docs のみ。
-- 進行中: 実装は停止中。**`agent/r1-2-api-routes` ブランチに未マージ実装は無い**（main との差 0 コミット＝眠っている実装は存在しない。2026-07-25 確認）。
-- 次の一手:
-  1. **R1-2 APIルート実装（認証なし・entities / facts / tags / votes）** — 仕様は `metagmo_spec.md` §5。
-  2. R1-3 ワードクラウド表示（単語サイズ = ネットスコア）。
-  3. R1-4 視界ボタン3つ（直近一週間・合意・論争）のトグル。
-- ブロッカー/外部待ち: ①package manager は **npm に統一済み**（2026-10-10・README ほかの記述を修正、依存の版を `latest` から固定）。②**テストが存在しない** — root scripts は dev / build / start / lint のみで `test` 未定義＝受け入れ検証の手段が無い。
-- ★**タスク番号の正 = `RoadMap.md` の R1 成果物 ＝ `task.md` のチェックリスト（R1-1 DBスキーマ / R1-2 API / R1-3 ワードクラウド / R1-4 視界ボタン / R1-5 タグ検索・ソート）**。`CLAUDE.md` L86-91 は R1-3 以降が独自番号で、R1-4 に **R2 スコープ**の「レバレッジ重み設定UI」を置いており誤り。task.md 内でも R1-5 がチェックリスト（タグ検索・ソート）と詳細節（CAPTCHA/クールダウン）で二重定義。**番号で迷ったらこのブロックを入口とすること**（他2文書は今回未修正）。
+## 現在地（2026-10-11）
+- フェーズ: **R1 MVP（ログイン不要・ワードクラウド版）。** 土台は **Cloudflare Workers + D1**（2026-10-10 決定。経緯と見直す条件は `spec.md` §7）。画面は Worker がページを返す。
+- できているもの: `apps/worker` に Worker の骨組み（`/health` のみ）と D1 の 5 表（`migrations/0001_init.sql`）、手元の D1 で動くテスト（`npm test`・6 件）。API とページは未着手。
+- 次の一手（順番と完了の基準は `D:\dev\agents\queue\metagmo.md` が正本）:
+  1. R1-2 API（entities / facts / tags / votes・認証なし）を Worker に実装する。
+  2. 視界 3 ボタンの集計 → 検索と並び替え → ページ表示とワードクラウド → 視界ボタンの画面側 → 公開前の荒らし対策。
+- ブロッカー/外部待ち: 本番の D1 は未作成（`apps/worker/wrangler.jsonc` の `database_id` は仮の値）。作成と公開は人が同席して行う。
+- 注意: `apps/web` は旧計画の雛形で使わない（Worker がページを返すようになった時に消す）。`npm run lint` は今も `apps/web` だけが対象。
+- ★**タスク番号の正 = `RoadMap.md` の R1 成果物 ＝ `task.md` のチェックリスト（R1-1 DBスキーマ / R1-2 API / R1-3 ワードクラウド / R1-4 視界ボタン / R1-5 タグ検索・ソート）**。`CLAUDE.md`「現在の進捗」と、この文書の下の詳細節（R1-5・R1-6）は番号がずれている。迷ったらこのブロックを入口にする。
 <!-- CURRENT-END -->
 
 # メタグモ タスクリスト
@@ -26,7 +26,7 @@
 - [ ] 実装時は、匿名CAPTCHA/30秒クールダウン、通報→一時非表示、モデレーター確認フローを後付けにしすぎない。
 
 # 公開準備
-- [x] Git公開準備: Supabase/Vercel の環境変数、credential、DB dump、ローカルデータを除外する `.gitignore` を追加
+- [x] Git公開準備: 環境変数、credential、DB dump、ローカルデータを除外する `.gitignore` を追加
 
 # チェックリスト
 1. [x] R1-1 DBスキーマ定義
@@ -42,12 +42,12 @@
 ---
 
 ## R1-1 DBスキーマ定義
-- [x] `metagmo_spec.md` のデータモデル（MVP最小版）に基づき、Supabase (PostgreSQL) 用のSQLスキーマを定義する。
-- [x] `Entity`, `Fact`, `Tag`, `Vote`, `History` テーブルの設計を行う（`Follow` は発展形用として定義済み）。
+- [x] `metagmo_spec.md` のデータモデル（MVP最小版）に基づき、SQLスキーマを定義する（2026-10-11 に D1 用へ作り直した。`apps/worker/migrations/0001_init.sql`）。
+- [x] `Entity`, `Fact`, `Tag`, `Vote`, `History` テーブルの設計を行う（`Follow` は発展形用。MVP の D1 には作っていない）。
 - [x] 各テーブルのカラム、データ型、主キー、外部キー、インデックスを決定する。
 
 ## R1-2 APIルート実装（認証なし）
-- [ ] `metagmo_spec.md` セクション2.1に基づき、以下のAPIエンドポイントをNext.jsのAPIルートとして実装する。
+- [ ] `metagmo_spec.md` セクション2.1に基づき、以下のAPIエンドポイントを Worker（`apps/worker`）に実装する。
   - `GET /api/entities` — ページ一覧
   - `GET /api/entities/[id]` — ページ詳細
   - `POST /api/entities` — ページ作成（匿名）
@@ -57,7 +57,7 @@
   - `POST /api/entities/[id]/tags` — タグ投稿（匿名）
   - `POST /api/tags/[id]/vote` — up/down投票（匿名）
 - [ ] 各エンドポイントの入力バリデーション・ビジネスロジック・DB操作を実装する。
-- [ ] 認証は不要（MVP）。Supabase の匿名アクセスポリシーを設定する。
+- [ ] 認証は不要（MVP）。
 
 ## R1-3 ワードクラウド表示実装
 - [ ] ページに紐づくタグをワードクラウドで表示するコンポーネントを実装する。
