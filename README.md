@@ -16,7 +16,7 @@
 - **土台:** Cloudflare Workers + D1（TypeScript）。決定の経緯と見直す条件は `spec.md` §7。
 - **画面:** Worker がページの HTML を返します。
 - **モノレポ管理:** npm workspaces
-- **テスト:** vitest + `@cloudflare/vitest-pool-workers`（手元の D1）
+- **テスト:** vitest + `@cloudflare/vitest-plugin`（手元の D1）
 - **ログイン:** MVP にはありません。導入を決めた時に土台を見直します。
 
 ## 必須環境

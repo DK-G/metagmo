@@ -2,7 +2,7 @@
   "$schema": "../../node_modules/wrangler/config-schema.json",
   "name": "metagmo",
   "main": "src/index.ts",
-  // テストの実行環境（vitest-pool-workers 同梱の workerd）が対応する最新日付に合わせている。
+  // 旧テスト土台（vitest-pool-workers）の上限に合わせた日付のまま。@cloudflare/vitest-plugin 1.4.0 では 2026-10-06 でもテストが起動する（2026-10-11 実測）。
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "d1_databases": [

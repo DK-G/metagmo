@@ -55,7 +55,7 @@ docs/              # 仕様書
 ### 技術スタック
 - **土台**: Cloudflare Workers + D1（2026-10-10 決定。経緯と見直す条件は `spec.md` §7）
 - **画面**: Worker がページの HTML を返す（各ページを検索結果と X のカードに載せるため）
-- **テスト**: vitest + `@cloudflare/vitest-pool-workers`（手元の D1）
+- **テスト**: vitest + `@cloudflare/vitest-plugin`（手元の D1）
 - **ログイン**: MVP には無い。導入を決めた時に土台を見直す
 - **スタイル**: Tailwind CSS（導入予定）
 
