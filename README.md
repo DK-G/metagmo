@@ -4,7 +4,6 @@
 
 ## リポジトリ構成
 - `apps/worker/`: 本体の Cloudflare Worker（TypeScript）。`migrations/` に D1 の表、`test/` に手元の D1 で動くテスト。
-- `apps/web/`: 旧計画の雛形。使っていません（Worker がページを返すようになった時に消します）。
 - `packages/ui-components/`: 共有UIコンポーネント。
 - `packages/utils/`: 共通ユーティリティ関数。
 - `packages/types/`: 共有型定義。
@@ -16,7 +15,7 @@
 - **土台:** Cloudflare Workers + D1（TypeScript）。決定の経緯と見直す条件は `spec.md` §7。
 - **画面:** Worker がページの HTML を返します。
 - **モノレポ管理:** npm workspaces
-- **テスト:** vitest + `@cloudflare/vitest-pool-workers`（手元の D1）
+- **テスト:** vitest + `@cloudflare/vitest-plugin`（手元の D1）
 - **ログイン:** MVP にはありません。導入を決めた時に土台を見直します。
 
 ## 必須環境
@@ -31,7 +30,7 @@
 ## 開発時によく使うコマンド
 - テスト: `npm test`
 - 型検査: `npm run typecheck`
-- リント: `npm run lint`（今は `apps/web` だけが対象）
+- リント: `npm run lint`（`apps/worker` が対象）
 
 ## 進め方
 - プロジェクトの全体像と目的は `GEMINI.md` を参照してください。

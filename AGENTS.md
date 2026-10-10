@@ -40,8 +40,8 @@ primary sources and mention the unavailable shared file in the result.
 
 ## Project-Specific Notes
 
-- Main stack: npm workspaces monorepo. `apps/worker` is a Cloudflare Worker (TypeScript) backed by D1; the Worker serves both the API and the HTML pages. Shared packages live under `packages/*`. Decision record: `spec.md` §7 (2026-10-10). `apps/web` is the leftover scaffold from the previous plan and is not built on; it is removed when the Worker serves the pages.
-- Main commands: `npm test` (vitest against a local D1) and `npm run typecheck` delegate to `apps/worker`; `npm run lint` still delegates to `apps/web`. Local dev server: `npm --workspace apps/worker run dev`.
+- Main stack: npm workspaces monorepo. `apps/worker` is a Cloudflare Worker (TypeScript) backed by D1; the Worker serves both the API and the HTML pages. Shared packages live under `packages/*`. Decision record: `spec.md` §7 (2026-10-10). The Next.js scaffold `apps/web` from the previous plan was removed on 2026-10-11 (Q-008).
+- Main commands: `npm test` (vitest against a local D1), `npm run typecheck` and `npm run lint` (eslint + typescript-eslint) all delegate to `apps/worker`. Local dev server: `npm --workspace apps/worker run dev`.
 - Deployment target: Cloudflare Workers + D1. The production D1 is not created yet (`apps/worker/wrangler.jsonc` holds a placeholder id); deploying is a human-attended step.
 - Schema: `apps/worker/migrations/` is the source of truth. Add a new numbered migration instead of editing an applied one.
 - Important constraints: MVP currently allows anonymous API routes; implement R1 tasks against `metagmo_spec.md`; preserve the 3-view filter model (recent week, consensus, controversy); keep workspace boundaries between `apps/*` and `packages/*`.

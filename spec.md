@@ -21,7 +21,7 @@
 | 土台 | Cloudflare Workers + D1（TypeScript） | wrangler 4.x | §7 の決定（2026-10-10） |
 | 画面 | Worker がページの HTML を返す | - | 各ページを検索結果と X のカードに載せるため |
 | モノレポ管理 | npm workspaces | 10.x | パッケージ間依存管理 |
-| テスト | vitest + `@cloudflare/vitest-pool-workers` | 4.x | 手元の D1 で表と読み書きを確かめる |
+| テスト | vitest + `@cloudflare/vitest-plugin` | 4.x | 手元の D1 で表と読み書きを確かめる |
 | ログイン | MVP には無い | - | 導入を決めた時に土台を見直す（§7） |
 
 -----
@@ -85,7 +85,7 @@ leverage      — フォロー中ユーザーの重み付き合算（-3〜+3ス�
 - **コマンド**:
   - `npm test` — テスト（手元の D1）
   - `npm run typecheck` — 型検査
-  - `npm run lint` — リント（今は `apps/web` だけが対象）
+  - `npm run lint` — リント（`apps/worker` が対象。eslint + typescript-eslint）
   - `npm --workspace apps/worker run dev` — Worker を手元で起動
   - フォーマットのコマンドは未定義
 

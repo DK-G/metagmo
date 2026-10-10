@@ -33,7 +33,7 @@ npm run typecheck
 # Worker を手元で起動
 npm --workspace apps/worker run dev
 
-# リント（今は apps/web だけが対象）
+# リント（apps/worker が対象）
 npm run lint
 ```
 
@@ -45,7 +45,6 @@ npm run lint
 
 ```
 apps/worker/       # Cloudflare Worker (TypeScript) + D1 — API とページの両方を返す本体
-apps/web/          # 旧計画の雛形。使わない（Worker がページを返すようになった時に消す）
 packages/types/    # 共有型定義
 packages/ui-components/  # 共有UIコンポーネント
 packages/utils/    # 共通ユーティリティ
@@ -55,7 +54,7 @@ docs/              # 仕様書
 ### 技術スタック
 - **土台**: Cloudflare Workers + D1（2026-10-10 決定。経緯と見直す条件は `spec.md` §7）
 - **画面**: Worker がページの HTML を返す（各ページを検索結果と X のカードに載せるため）
-- **テスト**: vitest + `@cloudflare/vitest-pool-workers`（手元の D1）
+- **テスト**: vitest + `@cloudflare/vitest-plugin`（手元の D1）
 - **ログイン**: MVP には無い。導入を決めた時に土台を見直す
 - **スタイル**: Tailwind CSS（導入予定）
 

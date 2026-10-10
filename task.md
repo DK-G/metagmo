@@ -6,7 +6,7 @@
   1. R1-2 API（entities / facts / tags / votes・認証なし）を Worker に実装する。
   2. 視界 3 ボタンの集計 → 検索と並び替え → ページ表示とワードクラウド → 視界ボタンの画面側 → 公開前の荒らし対策。
 - ブロッカー/外部待ち: 本番の D1 は未作成（`apps/worker/wrangler.jsonc` の `database_id` は仮の値）。作成と公開は人が同席して行う。
-- 注意: `apps/web` は旧計画の雛形で使わない（Worker がページを返すようになった時に消す）。`npm run lint` は今も `apps/web` だけが対象。
+- 注意: 旧計画の `apps/web`（Next.js）は 2026-10-11 に消した（Q-008）。中に入っていた画面の試作は `docs/prototype/` へ移してある（読むための資料）。`npm run lint` は `apps/worker` を検査する。検証は `npm test`・`npm run typecheck`・`npm run lint` の 3 つ。
 - ★**タスク番号の正 = `RoadMap.md` の R1 成果物 ＝ `task.md` のチェックリスト（R1-1 DBスキーマ / R1-2 API / R1-3 ワードクラウド / R1-4 視界ボタン / R1-5 タグ検索・ソート）**。`CLAUDE.md`「現在の進捗」と、この文書の下の詳細節（R1-5・R1-6）は番号がずれている。迷ったらこのブロックを入口にする。
 <!-- CURRENT-END -->
 
