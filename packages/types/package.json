@@ -1,9 +1,0 @@
-{
-  "name": "types",
-  "version": "0.1.0",
-  "main": "index.ts",
-  "license": "MIT",
-  "devDependencies": {
-    "typescript": "6.0.3"
-  }
-}

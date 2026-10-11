@@ -4,9 +4,6 @@
 
 ## リポジトリ構成
 - `apps/worker/`: 本体の Cloudflare Worker（TypeScript）。`migrations/` に D1 の表、`test/` に手元の D1 で動くテスト。
-- `packages/ui-components/`: 共有UIコンポーネント。
-- `packages/utils/`: 共通ユーティリティ関数。
-- `packages/types/`: 共有型定義。
 - `docs/`: 詳細仕様、計画ドキュメント (`metagmo_spec.md`など)。
 - `scripts/`: リポジトリユーティリティ。
 - `GEMINI.md`, `RoadMap.md`, `task.md`: 開発計画と日々のタスク管理用ドキュメント。

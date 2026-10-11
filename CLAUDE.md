@@ -45,9 +45,6 @@ npm run lint
 
 ```
 apps/worker/       # Cloudflare Worker (TypeScript) + D1 — API とページの両方を返す本体
-packages/types/    # 共有型定義
-packages/ui-components/  # 共有UIコンポーネント
-packages/utils/    # 共通ユーティリティ
 docs/              # 仕様書
 ```
 
