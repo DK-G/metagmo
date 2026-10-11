@@ -34,10 +34,6 @@
 /apps
   /worker/          # Cloudflare Worker + D1（API とページ）。表は migrations/、テストは test/
   /web/             # 旧計画の雛形。使わない
-/packages
-  /ui-components/   # 共有UIコンポーネント
-  /utils/           # 共通ユーティリティ
-  /types/           # 共有型定義
 /docs
   metagmo_spec.md  # 全体仕様書（★最重要。設計の正本）
 ```
