@@ -1,3 +1,5 @@
+import { handleApi } from "./api";
+
 export interface Env {
   DB: D1Database;
 }
@@ -9,6 +11,10 @@ export default {
     if (request.method === "GET" && url.pathname === "/health") {
       const row = await env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
       return Response.json({ ok: row?.ok === 1 });
+    }
+
+    if (url.pathname.startsWith("/api/")) {
+      return handleApi(request, env, url.pathname.slice("/api".length));
     }
 
     return Response.json({ error: "not_found" }, { status: 404 });
