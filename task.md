@@ -1,9 +1,9 @@
 <!-- CURRENT-START / ここだけを常に最新に保つ。ここより下は履歴で、読むのは必要時のみ。 -->
-## 現在地（2026-10-11）
+## 現在地（2026-10-13）
 - フェーズ: **R1 MVP（ログイン不要・ワードクラウド版）。** 土台は **Cloudflare Workers + D1**（2026-10-10 決定。経緯と見直す条件は `spec.md` §7）。画面は Worker がページを返す。
-- できているもの: `apps/worker` に D1 の 5 表（`migrations/0001_init.sql`）と **R1-2 API**（`src/api.ts`。ページ・ファクト・タグ・投票の作成と一覧、入力検査は `src/validate.ts`）、手元の D1 で動くテスト（`npm test`・33 件）。視界の集計・検索・ページは未着手。
+- できているもの: `apps/worker` に D1 の 5 表（`migrations/0001_init.sql`）と **R1-2 API**（`src/api.ts`。ページ・ファクト・タグ・投票の作成と一覧、入力検査は `src/validate.ts`）、**視界 3 ボタンの集計**（`src/views.ts`。`GET /api/entities/:id/tags` が `?recent=`・`?consensus=`・`?controversy=` に 0/1/2 を受ける。「直近一週間」では票の無いタグを返さない）、手元の D1 で動くテスト（`npm test`・82 件）。検索・ページは未着手。
 - 次の一手（順番と完了の基準は `D:\devgents\queue\metagmo.md` が正本）:
-  1. 視界 3 ボタンの集計を API に入れる（`GET /api/entities/:id/tags` へ足す）。
+  1. 同じページに同じ文言のタグを 2 つ作れない制約を migration で足す。
   2. 検索と並び替え → ページ表示とワードクラウド → 視界ボタンの画面側 → 公開前の荒らし対策。
 - ブロッカー/外部待ち: 本番の D1 は未作成（`apps/worker/wrangler.jsonc` の `database_id` は仮の値）。作成と公開は人が同席して行う。
 - 注意: 旧計画の `apps/web`（Next.js）は 2026-10-11 に消した（Q-008）。中に入っていた画面の試作は `docs/prototype/` へ移してある（読むための資料）。`npm run lint` は `apps/worker` を検査する。検証は `npm test`・`npm run typecheck`・`npm run lint` の 3 つ。

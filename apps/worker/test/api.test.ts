@@ -277,6 +277,107 @@ describe("投票（votes）", () => {
   });
 });
 
+describe("タグの一覧と視界 3 ボタン", () => {
+  const DAY = 24 * 60 * 60 * 1000;
+  const daysAgo = (days: number) => new Date(Date.now() - days * DAY).toISOString();
+
+  /** 票を日時つきで直に入れる（API の投票は「今」の票しか作れないため）。 */
+  async function castVotes(tagId: string, up: number, down: number, at: string) {
+    const types = [...Array<string>(up).fill("up"), ...Array<string>(down).fill("down")];
+    if (types.length === 0) return;
+    await env.DB.batch(
+      types.map((type) =>
+        env.DB.prepare("INSERT INTO votes (id, tag_id, vote_type, created_at) VALUES (?, ?, ?, ?)").bind(
+          crypto.randomUUID(),
+          tagId,
+          type,
+          at,
+        ),
+      ),
+    );
+  }
+
+  /** 視界ごとに返るタグが変わるよう、票の付き方が違う 5 つのタグを持つページを作る。 */
+  async function seeded() {
+    const entity = await newEntity();
+    const add = async (text: string, recent: [number, number], old: [number, number]) => {
+      const tag = await newTag(entity.id, text);
+      await castVotes(tag.id, recent[0], recent[1], daysAgo(1));
+      await castVotes(tag.id, old[0], old[1], daysAgo(20));
+    };
+    await add("今週は賛成", [8, 2], [0, 0]);
+    await add("今週は反対", [1, 9], [0, 0]);
+    await add("今週は割れた", [5, 5], [0, 0]);
+    await add("昔は賛成", [0, 0], [6, 0]);
+    await add("票なし", [0, 0], [0, 0]);
+    return entity;
+  }
+
+  const sorted = (...names: string[]) => names.sort();
+  const texts = async (entityId: string, query = "") => {
+    const res = await get(`/api/entities/${entityId}/tags${query}`);
+    expect(res.status).toBe(200);
+    return sorted(...((await res.json()) as { tags: Tag[] }).tags.map((t) => t.tag_text));
+  };
+
+  it("未押し（クエリなし・0）は票の無いタグも含めて全部返す", async () => {
+    const entity = await seeded();
+    const all = sorted("今週は賛成", "今週は反対", "今週は割れた", "昔は賛成", "票なし");
+    expect(await texts(entity.id)).toEqual(all);
+    expect(await texts(entity.id, "?recent=0&consensus=0&controversy=0")).toEqual(all);
+  });
+
+  it("直近一週間: 1 回目は今週の票があるタグ、2 回目はそれより前の票があるタグだけ（0 票のタグは返らない）", async () => {
+    const entity = await seeded();
+    expect(await texts(entity.id, "?recent=1")).toEqual(sorted("今週は賛成", "今週は反対", "今週は割れた"));
+    expect(await texts(entity.id, "?recent=2")).toEqual(["昔は賛成"]);
+  });
+
+  it("合意: 1 回目は賛成多数、2 回目は反対多数", async () => {
+    const entity = await seeded();
+    expect(await texts(entity.id, "?consensus=1")).toEqual(sorted("今週は賛成", "昔は賛成"));
+    expect(await texts(entity.id, "?consensus=2")).toEqual(["今週は反対"]);
+  });
+
+  it("論争: 1 回目は割れているタグ、2 回目は決着済みのタグ", async () => {
+    const entity = await seeded();
+    expect(await texts(entity.id, "?controversy=1")).toEqual(["今週は割れた"]);
+    expect(await texts(entity.id, "?controversy=2")).toEqual(sorted("今週は賛成", "今週は反対", "昔は賛成"));
+  });
+
+  it("重ね押しは「かつ」で絞り、票数は絞った期間のものを返す", async () => {
+    const entity = await seeded();
+    expect(await texts(entity.id, "?recent=1&consensus=1")).toEqual(["今週は賛成"]);
+    expect(await texts(entity.id, "?recent=2&consensus=1")).toEqual(["昔は賛成"]);
+
+    const res = await get(`/api/entities/${entity.id}/tags?recent=1&consensus=1`);
+    const { tags } = (await res.json()) as { tags: Tag[] };
+    expect(tags[0]).toMatchObject({ tag_text: "今週は賛成", up: 8, down: 2, score: 6 });
+  });
+
+  it.each([
+    ["recent=3", "recent"],
+    ["consensus=on", "consensus"],
+    ["controversy=-1", "controversy"],
+    ["recent=", "recent"],
+    ["recent=1&controversy=9", "controversy"],
+  ])("0・1・2 以外（%s）は 400", async (query, field) => {
+    const entity = await newEntity();
+    await expectInvalid(await get(`/api/entities/${entity.id}/tags?${query}`), field, "invalid");
+  });
+
+  it("無いページは、クエリが不正でも 404", async () => {
+    const res = await get(`/api/entities/${crypto.randomUUID()}/tags?recent=9`);
+    expect(res.status).toBe(404);
+  });
+
+  it("タグを作る POST は視界のクエリを見ない", async () => {
+    const entity = await newEntity();
+    const res = await post(`/api/entities/${entity.id}/tags?recent=9`, { tag_text: "x" });
+    expect(res.status).toBe(201);
+  });
+});
+
 describe("経路", () => {
   it("知らない経路は 404", async () => {
     expect((await get("/api/unknown")).status).toBe(404);

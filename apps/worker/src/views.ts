@@ -67,7 +67,8 @@ type TagRow = Omit<ViewTag, "score">;
 /**
  * ページのタグを、視界に合わせて集計して返す。
  * 並びはネットスコア（up - down）の大きい順、同点は新しい順。
- * 「直近一週間」は数える票を絞るだけで、その期間に票の無いタグも 0 票として残る。
+ * 「直近一週間」（1 回目・2 回目）は数える票を絞り、その期間に票の無いタグは返さない。
+ * 未押しでは票の無いタグも返す。
  */
 export async function listTagsByView(
   db: D1Database,
@@ -93,5 +94,8 @@ export async function listTagsByView(
     .bind(cutoff, entityId)
     .all<TagRow>();
 
-  return results.filter((row) => matchesView(row.up, row.down, view)).map((row) => ({ ...row, score: row.up - row.down }));
+  return results
+    .filter((row) => view.recent === 0 || row.up + row.down > 0)
+    .filter((row) => matchesView(row.up, row.down, view))
+    .map((row) => ({ ...row, score: row.up - row.down }));
 }

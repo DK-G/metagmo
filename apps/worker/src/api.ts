@@ -1,8 +1,9 @@
 // R1-2 API（認証なし）。ページ・ファクト・タグ・投票の基本操作。
-// 視界の絞り込み（Q-003）と検索・並び替え（Q-004）はここにまだ無い。
+// タグの一覧は視界 3 ボタンで絞れる（集計は views.ts）。検索・並び替え（Q-004）はここにまだ無い。
 
 import type { Env } from "./index";
 import { InputError, LIMITS, optionalText, requiredHttpUrl, requiredText, voteType } from "./validate";
+import { listTagsByView, parseViewState } from "./views";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const LIST_LIMIT = 100;
@@ -41,7 +42,7 @@ async function entityExists(env: Env, id: string): Promise<boolean> {
 const ENTITY_COLUMNS = "id, title, summary, created_at, updated_at";
 const FACT_COLUMNS = "id, entity_id, content, source_url, source_type, status, created_at, updated_at";
 
-// タグと票数。並びはネットスコア（up - down）の大きい順、同点は新しい順。
+// タグ 1 件と票数（全期間）。一覧は views.ts の listTagsByView が返す。
 const TAG_WITH_COUNTS = `
   SELECT t.id, t.entity_id, t.tag_text, t.created_at,
          COALESCE(SUM(v.vote_type = 'up'), 0) AS up,
@@ -124,14 +125,12 @@ async function createFact(request: Request, env: Env, entityId: string) {
   return json({ fact }, 201);
 }
 
-async function listTags(env: Env, entityId: string) {
+// `?recent=`・`?consensus=`・`?controversy=` に 0/1/2 を受ける。無い項目は未押し。
+async function listTags(env: Env, entityId: string, params: URLSearchParams) {
   if (!(await entityExists(env, entityId))) return notFound();
-  const { results } = await env.DB.prepare(
-    `${TAG_WITH_COUNTS} WHERE t.entity_id = ? GROUP BY t.id ORDER BY (up - down) DESC, t.created_at DESC, t.id`,
-  )
-    .bind(entityId)
-    .all<TagRow>();
-  return json({ tags: results.map(withScore) });
+  const parsed = parseViewState(params);
+  if (!parsed.ok) throw new InputError(parsed.field, "invalid");
+  return json({ tags: await listTagsByView(env.DB, entityId, parsed.view) });
 }
 
 async function createTag(request: Request, env: Env, entityId: string) {
@@ -175,6 +174,7 @@ async function createVote(request: Request, env: Env, tagId: string) {
 
 async function route(request: Request, env: Env, segments: string[]): Promise<Response> {
   const method = request.method;
+  const params = new URL(request.url).searchParams;
   const [resource, id, sub, ...rest] = segments;
   if (rest.length > 0) return notFound();
 
@@ -194,7 +194,7 @@ async function route(request: Request, env: Env, segments: string[]): Promise<Re
       return methodNotAllowed("GET, POST");
     }
     if (sub === "tags") {
-      if (method === "GET") return listTags(env, id);
+      if (method === "GET") return listTags(env, id, params);
       if (method === "POST") return createTag(request, env, id);
       return methodNotAllowed("GET, POST");
     }
