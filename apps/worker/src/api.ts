@@ -139,16 +139,23 @@ async function createTag(request: Request, env: Env, entityId: string) {
   const tagText = requiredText(body, "tag_text", LIMITS.tagText);
 
   // 同じページに同じ文言のタグが既にあれば、増やさずにそれを返す（票が割れないように）。
-  const existing = await env.DB.prepare("SELECT id FROM tags WHERE entity_id = ? AND tag_text = ?")
-    .bind(entityId, tagText)
-    .first<{ id: string }>();
-  if (existing) return json({ tag: await tagById(env, existing.id), created: false });
-
+  // 先に探してから入れると、同時に 2 件来た時に両方が「まだ無い」を見て 2 行できる。
+  // そこでまず入れ、表の一意制約（migrations/0002）で弾かれたら既にある行を返す。
+  // batch は 1 つの transaction なので、弾かれた時は履歴の行も残らない。
   const id = crypto.randomUUID();
-  await env.DB.batch([
-    env.DB.prepare("INSERT INTO tags (id, entity_id, tag_text) VALUES (?, ?, ?)").bind(id, entityId, tagText),
-    historyRow(env, "create", "tag", id, { entity_id: entityId, tag_text: tagText }),
-  ]);
+  try {
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO tags (id, entity_id, tag_text) VALUES (?, ?, ?)").bind(id, entityId, tagText),
+      historyRow(env, "create", "tag", id, { entity_id: entityId, tag_text: tagText }),
+    ]);
+  } catch (error) {
+    if (!String(error).includes("UNIQUE constraint failed")) throw error;
+    const existing = await env.DB.prepare("SELECT id FROM tags WHERE entity_id = ? AND tag_text = ?")
+      .bind(entityId, tagText)
+      .first<{ id: string }>();
+    if (!existing) throw error;
+    return json({ tag: await tagById(env, existing.id), created: false });
+  }
   return json({ tag: await tagById(env, id), created: true }, 201);
 }
 
