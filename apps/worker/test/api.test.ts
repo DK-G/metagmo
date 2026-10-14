@@ -217,6 +217,20 @@ describe("タグ（tags）", () => {
     expect(body.created).toBe(false);
     expect(body.tag.id).toBe(first.id);
     expect(await count("SELECT COUNT(*) AS n FROM tags WHERE entity_id = ?", entity.id)).toBe(1);
+    // 弾かれた 2 回目の作成は履歴にも残らない。
+    expect(await count("SELECT COUNT(*) AS n FROM history WHERE action = 'create' AND target_type = 'tag' AND details LIKE ?", `%${entity.id}%`)).toBe(1);
+  });
+
+  it("同じ文言を同時に送っても 1 行だけでき、両方に同じタグが返る", async () => {
+    const entity = await newEntity();
+    const path = `/api/entities/${entity.id}/tags`;
+    const responses = await Promise.all([1, 2, 3, 4].map(() => post(path, { tag_text: "同時" })));
+    const bodies = (await Promise.all(responses.map((r) => r.json()))) as { tag: Tag; created: boolean }[];
+    expect(responses.map((r) => r.status).sort()).toEqual([200, 200, 200, 201]);
+    expect(bodies.filter((b) => b.created)).toHaveLength(1);
+    expect(new Set(bodies.map((b) => b.tag.id)).size).toBe(1);
+    expect(await count("SELECT COUNT(*) AS n FROM tags WHERE entity_id = ?", entity.id)).toBe(1);
+    expect(await count("SELECT COUNT(*) AS n FROM history WHERE action = 'create' AND target_id = ?", bodies[0].tag.id)).toBe(1);
   });
 
   it("無いページへは 404", async () => {

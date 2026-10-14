@@ -69,6 +69,24 @@ describe("読み書き", () => {
     expect(await count("SELECT COUNT(*) AS n FROM tags WHERE entity_id = ?", entityId)).toBe(1);
   });
 
+  it("同じページに同じ文言のタグは 2 行目が入らない（別のページなら入る）", async () => {
+    const [a, b] = [crypto.randomUUID(), crypto.randomUUID()];
+    for (const id of [a, b]) {
+      await env.DB.prepare("INSERT INTO entities (id, title, summary) VALUES (?, 't', 's')").bind(id).run();
+    }
+    const insert = (entityId: string, text: string) =>
+      env.DB.prepare("INSERT INTO tags (id, entity_id, tag_text) VALUES (?, ?, ?)")
+        .bind(crypto.randomUUID(), entityId, text)
+        .run();
+
+    await insert(a, "難しい");
+    await expect(insert(a, "難しい")).rejects.toThrow(/UNIQUE constraint failed/);
+    await insert(a, "易しい");
+    await insert(b, "難しい");
+    expect(await count("SELECT COUNT(*) AS n FROM tags WHERE entity_id = ?", a)).toBe(2);
+    expect(await count("SELECT COUNT(*) AS n FROM tags WHERE entity_id = ?", b)).toBe(1);
+  });
+
   it("ページを消すと、ぶら下がるタグと投票も消える", async () => {
     const entityId = crypto.randomUUID();
     const tagId = crypto.randomUUID();
