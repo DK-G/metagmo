@@ -165,14 +165,27 @@ describe("直近一週間", () => {
     expect(tag).toMatchObject({ up: 0, down: 2, score: -2 });
   });
 
-  it("並びは絞った後のネットスコアで決まり、期間に票の無いタグも 0 票で残る", async () => {
+  it("並びは絞った後のネットスコアで決まる", async () => {
     const entityId = await newEntity();
-    await newTag(entityId, "昔は人気", votes(9, 0, daysAgo(20)));
-    await newTag(entityId, "今週伸びた", votes(2, 0, daysAgo(1)));
+    await newTag(entityId, "昔から人気", [...votes(9, 0, daysAgo(20)), ...votes(1, 0, daysAgo(1))]);
+    await newTag(entityId, "今週伸びた", [...votes(2, 0, daysAgo(1)), ...votes(0, 1, daysAgo(20))]);
 
-    expect(await texts(entityId, DEFAULT_VIEW)).toEqual(["昔は人気", "今週伸びた"]);
-    expect(await texts(entityId, view({ recent: 1 }))).toEqual(["今週伸びた", "昔は人気"]);
-    expect(await texts(entityId, view({ recent: 2 }))).toEqual(["昔は人気", "今週伸びた"]);
+    expect(await texts(entityId, DEFAULT_VIEW)).toEqual(["昔から人気", "今週伸びた"]);
+    expect(await texts(entityId, view({ recent: 1 }))).toEqual(["今週伸びた", "昔から人気"]);
+    expect(await texts(entityId, view({ recent: 2 }))).toEqual(["昔から人気", "今週伸びた"]);
+  });
+
+  it("1 回目・2 回目は、その期間に票の無いタグを返さない（未押しでは返す）", async () => {
+    const entityId = await newEntity();
+    await newTag(entityId, "昔だけ", votes(3, 0, daysAgo(20)));
+    await newTag(entityId, "今週だけ", votes(2, 0, daysAgo(1)));
+    await newTag(entityId, "票なし", []);
+    // up と down が同数で score が 0 でも、票があれば残る。
+    await newTag(entityId, "今週は同数", votes(1, 1, daysAgo(1)), daysAgo(40));
+
+    expect(await texts(entityId, DEFAULT_VIEW)).toEqual(["昔だけ", "今週だけ", "票なし", "今週は同数"]);
+    expect(await texts(entityId, view({ recent: 1 }))).toEqual(["今週だけ", "今週は同数"]);
+    expect(await texts(entityId, view({ recent: 2 }))).toEqual(["昔だけ"]);
   });
 });
 
