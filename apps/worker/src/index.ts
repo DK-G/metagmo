@@ -1,4 +1,5 @@
 import { handleApi } from "./api";
+import { handlePage } from "./page";
 
 export interface Env {
   DB: D1Database;
@@ -15,6 +16,17 @@ export default {
 
     if (url.pathname.startsWith("/api/")) {
       return handleApi(request, env, url.pathname.slice("/api".length));
+    }
+
+    const page = /^\/p\/([^/]+)\/?$/.exec(url.pathname);
+    if (page) {
+      let id: string;
+      try {
+        id = decodeURIComponent(page[1]);
+      } catch {
+        return Response.json({ error: "not_found" }, { status: 404 });
+      }
+      return handlePage(request, env, id);
     }
 
     return Response.json({ error: "not_found" }, { status: 404 });
