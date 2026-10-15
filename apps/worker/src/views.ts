@@ -1,6 +1,8 @@
 // 視界 3 ボタン（直近一週間・合意・論争）の集計。条件は metagmo_spec.md 2.1 の表どおり。
 // 各ボタンは 0 = 未押し / 1 = 1 回目 / 2 = 2 回目。押されたボタンどうしは「かつ」で重ねる。
 
+import type { SearchOptions } from "./search";
+
 export type ViewMode = 0 | 1 | 2;
 
 export interface ViewState {
@@ -66,7 +68,7 @@ type TagRow = Omit<ViewTag, "score">;
 
 /**
  * ページのタグを、視界に合わせて集計して返す。
- * 並びはネットスコア（up - down）の大きい順、同点は新しい順。
+ * 既定はネットスコア（up - down）の大きい順、同点は新しい順。newest は作成時刻順。
  * 「直近一週間」（1 回目・2 回目）は数える票を絞り、その期間に票の無いタグは返さない。
  * 未押しでは票の無いタグも返す。
  */
@@ -75,6 +77,7 @@ export async function listTagsByView(
   entityId: string,
   view: ViewState = DEFAULT_VIEW,
   now: Date = new Date(),
+  search: SearchOptions = { q: "", sort: "score_desc" },
 ): Promise<ViewTag[]> {
   // votes.created_at は ISO 8601（UTC・ミリ秒 3 桁）なので、文字列のまま比べられる。
   const cutoff = new Date(now.getTime() - RECENT_WINDOW_MS).toISOString();
@@ -87,11 +90,11 @@ export async function listTagsByView(
               COALESCE(SUM(v.vote_type = 'up'), 0) AS up,
               COALESCE(SUM(v.vote_type = 'down'), 0) AS down
        FROM tags t LEFT JOIN votes v ON v.tag_id = t.id ${window}
-       WHERE t.entity_id = ?2
+       WHERE t.entity_id = ?2 AND instr(lower(t.tag_text), lower(?3)) > 0
        GROUP BY t.id
-       ORDER BY (up - down) DESC, t.created_at DESC, t.id`,
+       ORDER BY ${search.sort === "score_desc" ? "(up - down) DESC," : ""} t.created_at DESC, t.id`,
     )
-    .bind(cutoff, entityId)
+    .bind(cutoff, entityId, search.q)
     .all<TagRow>();
 
   return results
