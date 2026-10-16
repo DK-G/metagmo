@@ -1,13 +1,11 @@
-<!-- CURRENT-START / ここだけを常に最新に保つ。ここより下は履歴で、読むのは必要時のみ。 -->
-## 現在地（2026-10-13）
-- フェーズ: **R1 MVP（ログイン不要・ワードクラウド版）。** 土台は **Cloudflare Workers + D1**（2026-10-10 決定。経緯と見直す条件は `spec.md` §7）。画面は Worker がページを返す。
-- できているもの: `apps/worker` に D1 の 5 表（`migrations/0001_init.sql`）と **R1-2 API**（`src/api.ts`。ページ・ファクト・タグ・投票の作成と一覧、入力検査は `src/validate.ts`）、**視界 3 ボタンの集計**（`src/views.ts`。`GET /api/entities/:id/tags` が `?recent=`・`?consensus=`・`?controversy=` に 0/1/2 を受ける。「直近一週間」では票の無いタグを返さない）、手元の D1 で動くテスト（`npm test`・82 件）。検索・ページは未着手。
-- 次の一手（順番と完了の基準は `D:\devgents\queue\metagmo.md` が正本）:
-  1. 同じページに同じ文言のタグを 2 つ作れない制約を migration で足す。
-  2. 検索と並び替え → ページ表示とワードクラウド → 視界ボタンの画面側 → 公開前の荒らし対策。
-- ブロッカー/外部待ち: 本番の D1 は未作成（`apps/worker/wrangler.jsonc` の `database_id` は仮の値）。作成と公開は人が同席して行う。
-- 注意: 旧計画の `apps/web`（Next.js）は 2026-10-11 に消した（Q-008）。中に入っていた画面の試作は `docs/prototype/` へ移してある（読むための資料）。`npm run lint` は `apps/worker` を検査する。検証は `npm test`・`npm run typecheck`・`npm run lint` の 3 つ。
-- ★**タスク番号の正 = `RoadMap.md` の R1 成果物 ＝ `task.md` のチェックリスト（R1-1 DBスキーマ / R1-2 API / R1-3 ワードクラウド / R1-4 視界ボタン / R1-5 タグ検索・ソート）**。`CLAUDE.md`「現在の進捗」と、この文書の下の詳細節（R1-5・R1-6）は番号がずれている。迷ったらこのブロックを入口にする。
+<!-- CURRENT-START -->
+## 現在地（2026-10-15）
+- フェーズ: R1 MVP、Cloudflare Workers + D1。
+- 本作業: Q-004（R1-5）のタイトル・タグ部分一致検索と score_desc/newest を実装。専用 branch `agent/metagmo/1015-search-sort`。画面は後続Q-005。
+- ページ検索はタイトルまたはタグを検索し重複を除く。ページスコアは全タグのネット票合計。タグ検索は視界の集計と併用。READMEにAPI契約を記載。
+- 検証: 検索の統合テスト5件を追加。全89テスト成功、typecheck・lint成功。既存laneの依存パッケージを一時リンクして検証（DBとコードは本worktree）。
+- 次の一手: 採否待ち。採用後はQ-005（HTMLとワードクラウド）。merge・push・公開は未実行。
+- 既存のQ-010一意制約はmainに統合済み。本番D1は未作成。
 <!-- CURRENT-END -->
 
 # メタグモ タスクリスト

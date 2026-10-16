@@ -29,6 +29,13 @@
 - 型検査: `npm run typecheck`
 - リント: `npm run lint`（`apps/worker` が対象）
 
+## 一覧APIの検索・並び替え
+
+- `GET /api/entities?q=東京&sort=newest`: タイトルまたはタグの部分一致でページを検索（同じページは1件）。既定は新着順。
+- `GET /api/entities?sort=score_desc`: ページの全タグの up − down の合計順。票のないページは0。
+- `GET /api/entities/:id/tags?q=東京&sort=newest`: タグ文言の部分一致。既定は `score_desc`。`recent`・`consensus`・`controversy` と併用可能で、スコアは視界内の票から計算。
+- `q` は前後の空白を除き最大200文字。空なら全件。`%`・`_` も文字として扱う。ASCIIの大文字小文字は区別しない。並びは `score_desc` / `newest` のみ、同点は作成日時の降順・id順。ページの上限100件は検索と並び替えの後で適用。
+
 ## 進め方
 - プロジェクトの全体像と目的は `GEMINI.md` を参照してください。
 - 長期計画は `RoadMap.md`、日々の作業は `task.md` にて管理します。

@@ -1,9 +1,10 @@
 // R1-2 API（認証なし）。ページ・ファクト・タグ・投票の基本操作。
-// タグの一覧は視界 3 ボタンで絞れる（集計は views.ts）。検索・並び替え（Q-004）はここにまだ無い。
+// 一覧は q の部分一致検索と sort を受ける。タグは視界 3 ボタンも重ねられる（views.ts）。
 
 import type { Env } from "./index";
 import { InputError, LIMITS, optionalText, requiredHttpUrl, requiredText, voteType } from "./validate";
 import { listTagsByView, parseViewState } from "./views";
+import { parseSearch } from "./search";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const LIST_LIMIT = 100;
@@ -65,11 +66,19 @@ async function tagById(env: Env, id: string) {
   return row ? withScore(row) : null;
 }
 
-async function listEntities(env: Env) {
+async function listEntities(env: Env, params: URLSearchParams) {
+  const { q, sort } = parseSearch(params, "newest");
+  const order = sort === "score_desc" ? "score DESC, e.created_at DESC, e.id" : "e.created_at DESC, e.id";
   const { results } = await env.DB.prepare(
-    `SELECT ${ENTITY_COLUMNS} FROM entities ORDER BY created_at DESC, id LIMIT ?`,
+    `SELECT e.id, e.title, e.summary, e.created_at, e.updated_at,
+       (SELECT COALESCE(SUM(CASE v.vote_type WHEN 'up' THEN 1 ELSE -1 END), 0)
+        FROM tags t JOIN votes v ON v.tag_id = t.id WHERE t.entity_id = e.id) AS score
+     FROM entities e
+     WHERE ?1 = '' OR instr(lower(e.title), lower(?1)) > 0
+       OR EXISTS (SELECT 1 FROM tags t WHERE t.entity_id = e.id AND instr(lower(t.tag_text), lower(?1)) > 0)
+     ORDER BY ${order} LIMIT ?2`,
   )
-    .bind(LIST_LIMIT)
+    .bind(q, LIST_LIMIT)
     .all();
   return json({ entities: results });
 }
@@ -130,7 +139,8 @@ async function listTags(env: Env, entityId: string, params: URLSearchParams) {
   if (!(await entityExists(env, entityId))) return notFound();
   const parsed = parseViewState(params);
   if (!parsed.ok) throw new InputError(parsed.field, "invalid");
-  return json({ tags: await listTagsByView(env.DB, entityId, parsed.view) });
+  const search = parseSearch(params, "score_desc");
+  return json({ tags: await listTagsByView(env.DB, entityId, parsed.view, new Date(), search) });
 }
 
 async function createTag(request: Request, env: Env, entityId: string) {
@@ -187,7 +197,7 @@ async function route(request: Request, env: Env, segments: string[]): Promise<Re
 
   if (resource === "entities") {
     if (id === undefined) {
-      if (method === "GET") return listEntities(env);
+      if (method === "GET") return listEntities(env, params);
       if (method === "POST") return createEntity(request, env);
       return methodNotAllowed("GET, POST");
     }
