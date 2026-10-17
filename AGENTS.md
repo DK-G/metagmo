@@ -45,4 +45,4 @@ primary sources and mention the unavailable shared file in the result.
 - Deployment target: Cloudflare Workers + D1. The production D1 is not created yet (`apps/worker/wrangler.jsonc` holds a placeholder id); deploying is a human-attended step.
 - Schema: `apps/worker/migrations/` is the source of truth. Add a new numbered migration instead of editing an applied one.
 - Important constraints: MVP currently allows anonymous API routes; implement R1 tasks against `metagmo_spec.md`; preserve the 3-view filter model (recent week, consensus, controversy).
-- Package manager: npm only (`packageManager: npm@10.8.2`, `package-lock.json`); dependency versions are pinned exactly, do not use `latest`. Current active work is API routes and word-cloud UI.
+- Package manager: npm only (`packageManager: npm@10.8.2`, `package-lock.json`); dependency versions are pinned exactly, do not use `latest`. For current work, see the CURRENT block at the top of `task.md`.

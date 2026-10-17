@@ -84,9 +84,4 @@ score_leverage(u) = Σ_vote(value ∈ {+1, -1} × weight_u(voter))
 - コミットは Conventional Commits 形式：`type(scope?): summary`
 
 ### 現在の進捗
-- [x] R1-1: DBスキーマ定義（`apps/worker/migrations/0001_init.sql`）
-- [ ] R1-2: APIルート実装（`metagmo_spec.md` セクション5参照）
-- [ ] R1-3: タグリスト/視界トグル/ソート機能
-- [ ] R1-4: レバレッジ重み設定UI
-- [ ] R1-5: 匿名向けCAPTCHA/30秒クールダウン
-- [ ] R1-6: 通報→自動非表示、モデレーターページ
+進み具合の正本は `task.md`（先頭の CURRENT ブロックと「R1 チェックリスト」）。ここには写さない。
