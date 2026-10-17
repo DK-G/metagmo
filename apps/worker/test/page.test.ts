@@ -140,3 +140,77 @@ describe("部品", () => {
     expect(escapeHtml(`<a href="x">'&'</a>`)).toBe("&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;");
   });
 });
+
+/** タグ一覧（.tag-list）に出たタグ名を、出てくる順に返す。 */
+function listedTags(html: string): string[] {
+  const list = html.slice(html.indexOf('class="tag-list"'));
+  return [...list.matchAll(/<h3>([^<]+)<\/h3>/g)].map((m) => m[1]);
+}
+
+/** 視界ボタン 1 つ分の <a> タグを返す。 */
+function viewButton(html: string, id: string): string {
+  const m = new RegExp(`<a class="view-button[^>]*data-view="${id}"[^>]*>`).exec(html);
+  expect(m).not.toBeNull();
+  return m![0];
+}
+
+describe("ページの視界ボタン（/p/:id?consensus= など）", () => {
+  it("既定ではボタン 3 つが未押しで、押した先のリンクを持つ", async () => {
+    const id = await newEntity("視界ボタンの既定", "未押しの確認。");
+    await newTag(id, "合意される語", 4, 0);
+    const html = await (await get(`/p/${id}`)).text();
+    expect(html).toContain('<nav class="view-controls" aria-label="視界ボタン">');
+    for (const view of ["recent", "consensus", "controversy"]) {
+      expect(viewButton(html, view)).toContain("state-0");
+    }
+    expect(viewButton(html, "consensus")).toContain(`href="/p/${id}?consensus=1"`);
+  });
+
+  it("?consensus=1 で合意ボタンが state-1 になり、表示するタグが既定と変わる", async () => {
+    const id = await newEntity("視界ボタンの合意", "合意の確認。");
+    await newTag(id, "合意される語", 4, 0);
+    await newTag(id, "拒否される語", 0, 4);
+    await newTag(id, "割れる語", 2, 2);
+
+    const base = await (await get(`/p/${id}`)).text();
+    expect(listedTags(base).sort()).toEqual(["割れる語", "合意される語", "拒否される語"].sort());
+
+    const res = await get(`/p/${id}?consensus=1`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    const consensus = viewButton(html, "consensus");
+    expect(consensus).toContain("view-button state-1");
+    expect(consensus).toContain(`href="/p/${id}?consensus=2"`);
+    expect(html).toContain("<span>合意</span><strong>合意</strong>");
+    // 他のボタンは今の視界を保ったまま、自分だけ次の状態へ進める。
+    expect(viewButton(html, "recent")).toContain(`href="/p/${id}?recent=1&amp;consensus=1"`);
+    expect(listedTags(html)).toEqual(["合意される語"]);
+    // canonical は視界の値を付けない。
+    expect(html).toContain(`<link rel="canonical" href="${BASE}/p/${id}">`);
+  });
+
+  it("?consensus=2・?controversy=1 もそれぞれのタグに絞る", async () => {
+    const id = await newEntity("視界ボタンの拒否と論争", "2 回目と論争の確認。");
+    await newTag(id, "合意される語", 4, 0);
+    await newTag(id, "拒否される語", 0, 4);
+    await newTag(id, "割れる語", 2, 2);
+
+    const rejected = await (await get(`/p/${id}?consensus=2`)).text();
+    expect(viewButton(rejected, "consensus")).toContain("state-2");
+    expect(viewButton(rejected, "consensus")).toContain(`href="/p/${id}"`);
+    expect(listedTags(rejected)).toEqual(["拒否される語"]);
+
+    const disputed = await (await get(`/p/${id}?controversy=1`)).text();
+    expect(viewButton(disputed, "controversy")).toContain("state-1");
+    expect(listedTags(disputed)).toEqual(["割れる語"]);
+  });
+
+  it("不正な視界の値は 400", async () => {
+    const id = await newEntity("視界ボタンの不正値", "400 の確認。");
+    for (const q of ["?consensus=3", "?recent=x", "?controversy="]) {
+      const res = await get(`/p/${id}${q}`);
+      expect(res.status).toBe(400);
+      expect(res.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
+    }
+  });
+});

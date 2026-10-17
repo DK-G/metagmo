@@ -1,6 +1,6 @@
 // R1-4 視界 3 ボタンの画面側。ラベルと 3 状態の名前は docs/prototype/page.jsx の VIEW_BUTTONS を写した。
 // ボタンは JS を使わないリンクで、押すと次の状態を URL の値（?recent= など）に入れたページへ移る（D-005 の仮の答え）。
-// ページ（Q-005 の handlePage）へのはめ込みは、その枝が main に入ってから行う。
+// ページ（page.ts の handlePage）の Word Cloud の見出しの下に置く。
 
 import type { ViewMode, ViewState } from "./views";
 

@@ -1,8 +1,10 @@
 // R1-3 ページ表示とワードクラウド。Worker が HTML をそのまま返す（検索結果と X のカードに載せるため）。
-// 構成と見た目は docs/prototype/page.jsx・globals.css を写した。視界ボタン（Q-006）と投稿・投票の画面はまだ無い。
+// 構成と見た目は docs/prototype/page.jsx・globals.css を写した。視界ボタン（Q-006）は URL の値（?recent= など）で切り替える。
+// 投稿・投票の画面はまだ無い。
 
 import type { Env } from "./index";
-import { listTagsByView, type ViewTag } from "./views";
+import { DEFAULT_VIEW, listTagsByView, parseViewState, type ViewState, type ViewTag } from "./views";
+import { renderViewButtons } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 
 interface EntityRow {
@@ -78,7 +80,15 @@ function renderTagList(tags: ViewTag[]): string {
     .join("\n");
 }
 
-export function renderEntityPage(entity: EntityRow, facts: FactRow[], tags: ViewTag[], pageUrl: string): string {
+/** pageUrl は canonical に使う（視界の値を付けない）。path は視界ボタンのリンク先。 */
+export function renderEntityPage(
+  entity: EntityRow,
+  facts: FactRow[],
+  tags: ViewTag[],
+  pageUrl: string,
+  view: ViewState = DEFAULT_VIEW,
+  path = `/p/${encodeURIComponent(entity.id)}`,
+): string {
   const title = escapeHtml(entity.title);
   const summary = escapeHtml(entity.summary);
   const url = escapeHtml(pageUrl);
@@ -118,7 +128,8 @@ ${renderFacts(facts)}
 </div>
 </aside>
 <section class="tag-experience" aria-label="タグ視界">
-<div class="toolbar"><div><h2>Word Cloud</h2><p>語の大きさは賛成と反対の差（up − down）です。</p></div></div>
+<div class="toolbar"><div><h2>Word Cloud</h2><p>ボタンを押すと、同じタグ群の見え方が変わります。語の大きさは賛成と反対の差（up − down）です。</p></div></div>
+${renderViewButtons(view, path)}
 <div class="cloud" aria-label="タグワードクラウド">
 ${renderCloud(tags)}
 </div>
@@ -141,7 +152,13 @@ const notFoundPage = () =>
     404,
   );
 
-/** `/p/:id` を受ける。 */
+const badViewPage = () =>
+  html(
+    `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>視界の指定が不正です | メタグモ</title></head><body><p>視界の指定が正しくありません（0・1・2 のどれかを指定します）。</p></body></html>`,
+    400,
+  );
+
+/** `/p/:id` を受ける。視界は ?recent= / ?consensus= / ?controversy= の 0・1・2。それ以外の値は 400。 */
 export async function handlePage(request: Request, env: Env, id: string): Promise<Response> {
   if (request.method !== "GET") {
     return new Response("method not allowed", { status: 405, headers: { Allow: "GET" } });
@@ -150,7 +167,10 @@ export async function handlePage(request: Request, env: Env, id: string): Promis
     .bind(id)
     .first<EntityRow>();
   if (!entity) return notFoundPage();
-  const [facts, tags] = await Promise.all([visibleFacts(env, id), listTagsByView(env.DB, id)]);
-  const pageUrl = new URL(`/p/${encodeURIComponent(id)}`, request.url).toString();
-  return html(renderEntityPage(entity, facts, tags, pageUrl));
+  const parsed = parseViewState(new URL(request.url).searchParams);
+  if (!parsed.ok) return badViewPage();
+  const [facts, tags] = await Promise.all([visibleFacts(env, id), listTagsByView(env.DB, id, parsed.view)]);
+  const path = `/p/${encodeURIComponent(id)}`;
+  const pageUrl = new URL(path, request.url).toString();
+  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path));
 }

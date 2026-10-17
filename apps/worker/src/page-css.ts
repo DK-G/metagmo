@@ -309,7 +309,9 @@ a {
   gap: 5px;
   min-height: 70px;
   padding: 12px;
+  color: var(--ink);
   text-align: left;
+  text-decoration: none;
 }
 
 .view-button span {
