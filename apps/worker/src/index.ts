@@ -1,4 +1,5 @@
 import { handleApi } from "./api";
+import { handleHome } from "./home";
 import { handlePage } from "./page";
 
 export interface Env {
@@ -16,6 +17,10 @@ export default {
 
     if (url.pathname.startsWith("/api/")) {
       return handleApi(request, env, url.pathname.slice("/api".length));
+    }
+
+    if (url.pathname === "/") {
+      return handleHome(request, env);
     }
 
     const page = /^\/p\/([^/]+)\/?$/.exec(url.pathname);
