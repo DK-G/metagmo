@@ -102,3 +102,72 @@ export async function listTagsByView(
     .filter((row) => matchesView(row.up, row.down, view))
     .map((row) => ({ ...row, score: row.up - row.down }));
 }
+
+export interface TagShareDiff {
+  id: string;
+  tag_text: string;
+  /** 全体での比率（そのタグの票数 ÷ ページの全タグの票数）。 */
+  allShare: number;
+  /** 視界での比率（視界に残ったタグの票数で同じく割る）。視界から外れたタグは 0。 */
+  viewShare: number;
+  /** viewShare - allShare。正なら視界で上がった、負なら下がった。 */
+  diff: number;
+}
+
+export interface ViewDiff {
+  /** 視界で比率が上がったタグ。差の大きい順。 */
+  up: TagShareDiff[];
+  /** 視界で比率が下がったタグ。差の大きい順（diff の小さい順）。 */
+  down: TagShareDiff[];
+  /** 比率が変わらないタグ。表示では出さない。 */
+  same: TagShareDiff[];
+}
+
+/**
+ * 全体と視界とで、タグごとの「票の比率」の差を求めて上がった・下がった・変わらないに分ける。
+ * 比率はタグの票数（up + down）をそのページの票数の合計で割ったもの。
+ * どちらかの合計が 0 なら比べられないので、すべて same に入れる。
+ * 上がった・下がったの判定は整数の掛け算で行う（小数の誤差で同じ比率が差ありにならないように）。
+ */
+export function diffTagShares(all: ViewTag[], inView: ViewTag[]): ViewDiff {
+  const votesOf = (t: ViewTag) => t.up + t.down;
+  const allTotal = all.reduce((sum, t) => sum + votesOf(t), 0);
+  const viewById = new Map(inView.map((t) => [t.id, t]));
+  const viewTotal = inView.reduce((sum, t) => sum + votesOf(t), 0);
+
+  const result: ViewDiff = { up: [], down: [], same: [] };
+  for (const tag of all) {
+    const allVotes = votesOf(tag);
+    const viewTag = viewById.get(tag.id);
+    const viewVotes = viewTag ? votesOf(viewTag) : 0;
+    const allShare = allTotal > 0 ? allVotes / allTotal : 0;
+    const viewShare = viewTotal > 0 ? viewVotes / viewTotal : 0;
+    const entry: TagShareDiff = { id: tag.id, tag_text: tag.tag_text, allShare, viewShare, diff: viewShare - allShare };
+    if (allTotal === 0 || viewTotal === 0) {
+      result.same.push({ ...entry, viewShare: allShare, diff: 0 });
+      continue;
+    }
+    const lhs = viewVotes * allTotal;
+    const rhs = allVotes * viewTotal;
+    if (lhs > rhs) result.up.push(entry);
+    else if (lhs < rhs) result.down.push(entry);
+    else result.same.push({ ...entry, diff: 0 });
+  }
+  result.up.sort((a, b) => b.diff - a.diff);
+  result.down.sort((a, b) => a.diff - b.diff);
+  return result;
+}
+
+/** ページのタグについて、未押し（全体）と視界とで比率の差を求める。 */
+export async function listTagDiffByView(
+  db: D1Database,
+  entityId: string,
+  view: ViewState,
+  now: Date = new Date(),
+): Promise<ViewDiff> {
+  const [all, inView] = await Promise.all([
+    listTagsByView(db, entityId, DEFAULT_VIEW, now),
+    listTagsByView(db, entityId, view, now),
+  ]);
+  return diffTagShares(all, inView);
+}
