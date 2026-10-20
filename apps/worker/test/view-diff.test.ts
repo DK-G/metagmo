@@ -74,6 +74,33 @@ describe("diffTagShares: 全体と視界の比率の差", () => {
     const all = [tag("a", 0, 0)];
     expect(ids(diffTagShares(all, all).same)).toEqual(["a"]);
   });
+
+  it("比べられるかを comparable で返す（D-007）", () => {
+    const all = [tag("a", 3, 0), tag("b", 1, 0)];
+    expect(diffTagShares(all, []).comparable).toBe(false);
+    expect(diffTagShares([tag("a", 0, 0)], [tag("a", 0, 0)]).comparable).toBe(false);
+    expect(diffTagShares(all, [tag("a", 1, 0)]).comparable).toBe(true);
+  });
+
+  it("既定の強さは差の絶対値", () => {
+    const all = [tag("a", 3, 0), tag("b", 1, 0)];
+    const result = diffTagShares(all, [tag("a", 3, 0)]);
+    expect(result.up[0].strength).toBeCloseTo(0.25);
+    expect(result.down[0].strength).toBeCloseTo(0.25);
+  });
+
+  it("standardize では、全体で珍しいタグの小さな差が、ありふれたタグの大きな差より強くなりうる（D-008）", () => {
+    // 全体（計 100）: a=1・b=40・c=59。視界（計 10）: a=1・b=6・c=3。
+    // 生の差: a +0.09・b +0.20 → b が先。
+    // 揺れで割る: a 0.09/√(0.01×0.99/10)≈2.86・b 0.20/√(0.4×0.6/10)≈1.29 → a が先。
+    const all = [tag("a", 1, 0), tag("b", 40, 0), tag("c", 59, 0)];
+    const inView = [tag("a", 1, 0), tag("b", 6, 0), tag("c", 3, 0)];
+    expect(ids(diffTagShares(all, inView).up)).toEqual(["b", "a"]);
+    const standardized = diffTagShares(all, inView, { standardize: true });
+    expect(ids(standardized.up)).toEqual(["a", "b"]);
+    expect(standardized.up[0].strength).toBeCloseTo(0.09 / Math.sqrt((0.01 * 0.99) / 10));
+    expect(standardized.up[0].diff).toBeCloseTo(0.09);
+  });
 });
 
 describe("listTagDiffByView（DB から）", () => {

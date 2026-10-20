@@ -277,6 +277,25 @@ describe("ページの「全体との差」（Q-011）", () => {
     expect(html).toContain("この視界で比率の上がったタグはありません。");
     expect(html).toContain("この視界で比率の下がったタグはありません。");
   });
+
+  it("視界に票が 1 つも無ければ、2 段を出さず比べられない旨の 1 行だけ出す（D-007）", async () => {
+    const id = await newEntity("票が新しいだけ", "一週間より前の票が無い。");
+    await newTag(id, "新しい票", 3, 0);
+    // 票はすべて今入れたので、?recent=2（一週間より前の票だけ）には票が無い。
+    const html = await (await get(`/p/${id}?recent=2`)).text();
+    expect(html).toContain("この視界には票が 1 つも無いので、全体と比べられません。");
+    expect(html).not.toContain('class="diff-row');
+    expect(html).not.toContain("下がったタグはありません");
+  });
+
+  it("直近一週間の視界だけ、大きさが偶然の揺れで割った差だと書き添える（D-008）", async () => {
+    const id = await newEntity("書き添え", "直近とそれ以外。");
+    await newTag(id, "タグ", 2, 0);
+    const recent = await (await get(`/p/${id}?recent=1`)).text();
+    const consensus = await (await get(`/p/${id}?consensus=1`)).text();
+    expect(recent).toContain("偶然に出る揺れで差を割った値です。");
+    expect(consensus).not.toContain("偶然に出る揺れ");
+  });
 });
 
 describe("diffSize", () => {

@@ -112,9 +112,16 @@ export interface TagShareDiff {
   viewShare: number;
   /** viewShare - allShare。正なら視界で上がった、負なら下がった。 */
   diff: number;
+  /**
+   * 差の強さ（0 以上）。並び順と表示の大きさに使う。既定は |diff|。
+   * standardize のときは |diff| ÷ √(allShare × (1 − allShare) ÷ 視界の票数)＝票数なら偶然に出る揺れで割った差（D-008）。
+   */
+  strength: number;
 }
 
 export interface ViewDiff {
+  /** 全体と視界の両方に票があり、比べられるか。false なら up・down は空（D-007）。 */
+  comparable: boolean;
   /** 視界で比率が上がったタグ。差の大きい順。 */
   up: TagShareDiff[];
   /** 視界で比率が下がったタグ。差の大きい順（diff の小さい順）。 */
@@ -129,34 +136,47 @@ export interface ViewDiff {
  * どちらかの合計が 0 なら比べられないので、すべて same に入れる。
  * 上がった・下がったの判定は整数の掛け算で行う（小数の誤差で同じ比率が差ありにならないように）。
  */
-export function diffTagShares(all: ViewTag[], inView: ViewTag[]): ViewDiff {
+export function diffTagShares(
+  all: ViewTag[],
+  inView: ViewTag[],
+  options: { standardize?: boolean } = {},
+): ViewDiff {
   const votesOf = (t: ViewTag) => t.up + t.down;
   const allTotal = all.reduce((sum, t) => sum + votesOf(t), 0);
   const viewById = new Map(inView.map((t) => [t.id, t]));
   const viewTotal = inView.reduce((sum, t) => sum + votesOf(t), 0);
+  const comparable = allTotal > 0 && viewTotal > 0;
 
-  const result: ViewDiff = { up: [], down: [], same: [] };
+  // 上がった・下がったに入るタグは 0 < allShare < 1 なので、揺れの分母は 0 にならない。
+  const strengthOf = (diff: number, allShare: number) =>
+    options.standardize ? Math.abs(diff) / Math.sqrt((allShare * (1 - allShare)) / viewTotal) : Math.abs(diff);
+
+  const result: ViewDiff = { comparable, up: [], down: [], same: [] };
   for (const tag of all) {
     const allVotes = votesOf(tag);
     const viewTag = viewById.get(tag.id);
     const viewVotes = viewTag ? votesOf(viewTag) : 0;
     const allShare = allTotal > 0 ? allVotes / allTotal : 0;
     const viewShare = viewTotal > 0 ? viewVotes / viewTotal : 0;
-    const entry: TagShareDiff = { id: tag.id, tag_text: tag.tag_text, allShare, viewShare, diff: viewShare - allShare };
-    if (allTotal === 0 || viewTotal === 0) {
+    const diff = viewShare - allShare;
+    const entry: TagShareDiff = { id: tag.id, tag_text: tag.tag_text, allShare, viewShare, diff, strength: 0 };
+    if (!comparable) {
       result.same.push({ ...entry, viewShare: allShare, diff: 0 });
       continue;
     }
     const lhs = viewVotes * allTotal;
     const rhs = allVotes * viewTotal;
-    if (lhs > rhs) result.up.push(entry);
-    else if (lhs < rhs) result.down.push(entry);
+    if (lhs > rhs) result.up.push({ ...entry, strength: strengthOf(diff, allShare) });
+    else if (lhs < rhs) result.down.push({ ...entry, strength: strengthOf(diff, allShare) });
     else result.same.push({ ...entry, diff: 0 });
   }
-  result.up.sort((a, b) => b.diff - a.diff);
-  result.down.sort((a, b) => a.diff - b.diff);
+  result.up.sort((a, b) => b.strength - a.strength);
+  result.down.sort((a, b) => b.strength - a.strength);
   return result;
 }
+
+/** 直近一週間の視界は票が少ないので、差を偶然の揺れで割って比べる（D-008）。合意・論争はタグの絞り込みなので生の差のまま。 */
+export const shouldStandardizeDiff = (view: ViewState) => view.recent !== 0;
 
 /** ページのタグについて、未押し（全体）と視界とで比率の差を求める。 */
 export async function listTagDiffByView(
@@ -169,5 +189,5 @@ export async function listTagDiffByView(
     listTagsByView(db, entityId, DEFAULT_VIEW, now),
     listTagsByView(db, entityId, view, now),
   ]);
-  return diffTagShares(all, inView);
+  return diffTagShares(all, inView, { standardize: shouldStandardizeDiff(view) });
 }
