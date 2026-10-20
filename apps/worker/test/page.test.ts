@@ -1,6 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { escapeHtml, wordSize } from "../src/page";
+import { diffSize, escapeHtml, wordSize } from "../src/page";
 
 const BASE = "https://example.com";
 
@@ -212,5 +212,78 @@ describe("ページの視界ボタン（/p/:id?consensus= など）", () => {
       expect(res.status).toBe(400);
       expect(res.headers.get("Content-Type")).toBe("text/html; charset=utf-8");
     }
+  });
+});
+
+/** 差の 1 段（diff-up / diff-down）に出たタグ名と大きさ（px）を、出てくる順に返す。 */
+function diffRow(html: string, row: "diff-up" | "diff-down"): Array<[string, number]> {
+  const start = html.indexOf(`class="diff-row ${row}"`);
+  expect(start).toBeGreaterThan(-1);
+  const end = html.indexOf("</div></div>", start);
+  return [...html.slice(start, end).matchAll(/--size: (\d+)px"[^>]*>([^<]+)<em>/g)].map((m) => [m[2], Number(m[1])]);
+}
+
+describe("ページの「全体との差」（Q-011）", () => {
+  it("既定の表示はワードクラウドのままで、差は閉じた <details> に入り、ボタンを押すよう 1 行出す", async () => {
+    const id = await newEntity("差の既定", "未押しの確認。");
+    await newTag(id, "合意される語", 4, 0);
+    const html = await (await get(`/p/${id}`)).text();
+    expect(html).toContain('<div class="cloud" aria-label="タグワードクラウド">');
+    expect(html).toContain('<details class="view-diff">');
+    expect(html).not.toContain('<details class="view-diff" open');
+    expect(html).toContain("視界ボタンを押すと");
+    expect(html).not.toContain('class="diff-row');
+  });
+
+  it("視界で上がったタグが上段、下がったタグが下段に入り、変わらないタグは出ない", async () => {
+    const id = await newEntity("差の 2 段", "合意の視界との差。");
+    // 全体の票は 4 + 4 + 4 = 12。合意の視界に残るのは「合意される語」だけ。
+    await newTag(id, "合意される語", 4, 0);
+    await newTag(id, "拒否される語", 0, 4);
+    await newTag(id, "割れる語", 2, 2);
+
+    const html = await (await get(`/p/${id}?consensus=1`)).text();
+    expect(diffRow(html, "diff-up").map(([t]) => t)).toEqual(["合意される語"]);
+    expect(diffRow(html, "diff-down").map(([t]) => t).sort()).toEqual(["割れる語", "拒否される語"].sort());
+    expect(html).toContain("33% → 100%");
+    expect(html).toContain("33% → 0%");
+  });
+
+  it("語の大きさは差の大きさで、差の大きい語ほど大きい", async () => {
+    const id = await newEntity("差の大きさ", "論争の視界との差。");
+    // 全体: 大 8 票・中 4 票・小 4 票 = 16。論争の視界（30〜70%）に残るのは「割れる大」と「割れる小」。
+    await newTag(id, "割れる大", 4, 4);
+    await newTag(id, "合意の中", 4, 0);
+    await newTag(id, "割れる小", 2, 2);
+
+    const html = await (await get(`/p/${id}?controversy=1`)).text();
+    // 視界: 大 8/12・小 4/12。差は 大 +0.167・小 +0.083・中 −0.25。
+    const up = Object.fromEntries(diffRow(html, "diff-up"));
+    const down = Object.fromEntries(diffRow(html, "diff-down"));
+    expect(Object.keys(up).sort()).toEqual(["割れる大", "割れる小"].sort());
+    expect(Object.keys(down)).toEqual(["合意の中"]);
+    expect(down["合意の中"]).toBe(56);
+    expect(up["割れる大"]).toBeGreaterThan(up["割れる小"]);
+    expect(down["合意の中"]).toBeGreaterThan(up["割れる大"]);
+  });
+
+  it("比率が全く変わらなければ、2 段とも「ありません」を出す", async () => {
+    const id = await newEntity("差なし", "全タグが視界に残る。");
+    await newTag(id, "合意 A", 4, 0);
+    await newTag(id, "合意 B", 3, 0);
+    const html = await (await get(`/p/${id}?consensus=1`)).text();
+    expect(diffRow(html, "diff-up")).toEqual([]);
+    expect(diffRow(html, "diff-down")).toEqual([]);
+    expect(html).toContain("この視界で比率の上がったタグはありません。");
+    expect(html).toContain("この視界で比率の下がったタグはありません。");
+  });
+});
+
+describe("diffSize", () => {
+  it("差の大きさを 18〜56 に写し、最大が 0 なら 18", () => {
+    expect(diffSize(0.25, 0.25)).toBe(56);
+    expect(diffSize(-0.25, 0.25)).toBe(56);
+    expect(diffSize(0.125, 0.25)).toBe(37);
+    expect(diffSize(0, 0)).toBe(18);
   });
 });

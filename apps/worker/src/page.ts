@@ -1,9 +1,19 @@
 // R1-3 ページ表示とワードクラウド。Worker が HTML をそのまま返す（検索結果と X のカードに載せるため）。
 // 構成と見た目は docs/prototype/page.jsx・globals.css を写した。視界ボタン（Q-006）は URL の値（?recent= など）で切り替える。
+// 「全体との差」（Q-011）は <details> で開く追加の 1 枚。既定の表示はワードクラウドのまま。
 // 投稿・投票の画面はまだ無い。
 
 import type { Env } from "./index";
-import { DEFAULT_VIEW, listTagsByView, parseViewState, type ViewState, type ViewTag } from "./views";
+import {
+  DEFAULT_VIEW,
+  diffTagShares,
+  listTagsByView,
+  parseViewState,
+  type TagShareDiff,
+  type ViewDiff,
+  type ViewState,
+  type ViewTag,
+} from "./views";
 import { renderViewButtons } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 
@@ -80,6 +90,53 @@ function renderTagList(tags: ViewTag[]): string {
     .join("\n");
 }
 
+const isDefaultView = (view: ViewState) => view.recent === 0 && view.consensus === 0 && view.controversy === 0;
+
+/** 差の 2 段の語の大きさ（px）。|diff| を両段の最大値で割って、ワードクラウドと同じ 18〜56 に写す。 */
+export function diffSize(diff: number, maxAbsDiff: number): number {
+  return maxAbsDiff > 0 ? 18 + Math.round((Math.abs(diff) / maxAbsDiff) * 38) : 18;
+}
+
+const percent = (share: number) => `${Math.round(share * 100)}%`;
+
+function renderDiffRow(entries: TagShareDiff[], maxAbsDiff: number, negative: boolean, emptyText: string): string {
+  if (entries.length === 0) return `<div class="empty-state">${emptyText}</div>`;
+  const cls = negative ? "cloud-word negative" : "cloud-word";
+  return entries
+    .map(
+      (d) =>
+        `<span class="${cls}" style="--size: ${diffSize(d.diff, maxAbsDiff)}px" title="全体 ${percent(d.allShare)} → この視界 ${percent(d.viewShare)}">${escapeHtml(d.tag_text)}<em>${percent(d.allShare)} → ${percent(d.viewShare)}</em></span>`,
+    )
+    .join("\n");
+}
+
+/**
+ * 視界と全体とで、タグの票の比率の差を上下 2 段で出す。上段＝上がったタグ、下段＝下がったタグ。
+ * 変わらないタグは出さない。語の大きさは差の大きさ（両段で同じ物差し）。
+ * diff が null（視界ボタンが全部未押し）なら、ボタンを押すよう 1 行だけ出す。
+ */
+export function renderViewDiff(diff: ViewDiff | null): string {
+  let body: string;
+  if (diff === null) {
+    body = `<div class="empty-state">視界ボタンを押すと、全体と比べて比率の上がったタグと下がったタグが出ます。</div>`;
+  } else {
+    const max = Math.max(0, ...[...diff.up, ...diff.down].map((d) => Math.abs(d.diff)));
+    body = `<div class="diff-row diff-up" aria-label="上がったタグ"><h4>上がった</h4>
+<div class="diff-words">
+${renderDiffRow(diff.up, max, false, "この視界で比率の上がったタグはありません。")}
+</div></div>
+<div class="diff-row diff-down" aria-label="下がったタグ"><h4>下がった</h4>
+<div class="diff-words">
+${renderDiffRow(diff.down, max, true, "この視界で比率の下がったタグはありません。")}
+</div></div>`;
+  }
+  return `<details class="view-diff">
+<summary>全体との差を見る</summary>
+<p class="diff-note">比率はタグの票数 ÷ ページの票数。全体での比率と、この視界での比率の差です。</p>
+${body}
+</details>`;
+}
+
 /** pageUrl は canonical に使う（視界の値を付けない）。path は視界ボタンのリンク先。 */
 export function renderEntityPage(
   entity: EntityRow,
@@ -88,6 +145,7 @@ export function renderEntityPage(
   pageUrl: string,
   view: ViewState = DEFAULT_VIEW,
   path = `/p/${encodeURIComponent(entity.id)}`,
+  diff: ViewDiff | null = null,
 ): string {
   const title = escapeHtml(entity.title);
   const summary = escapeHtml(entity.summary);
@@ -136,6 +194,7 @@ ${renderCloud(tags)}
 <div class="tag-list">
 ${renderTagList(tags)}
 </div>
+${renderViewDiff(diff)}
 </section>
 </section>
 </main>
@@ -169,8 +228,16 @@ export async function handlePage(request: Request, env: Env, id: string): Promis
   if (!entity) return notFoundPage();
   const parsed = parseViewState(new URL(request.url).searchParams);
   if (!parsed.ok) return badViewPage();
-  const [facts, tags] = await Promise.all([visibleFacts(env, id), listTagsByView(env.DB, id, parsed.view)]);
+  const now = new Date();
+  const isDefault = isDefaultView(parsed.view);
+  // 全体のタグは視界が未押しなら同じものなので、引き直さない。
+  const [facts, tags, allTags] = await Promise.all([
+    visibleFacts(env, id),
+    listTagsByView(env.DB, id, parsed.view, now),
+    isDefault ? Promise.resolve(null) : listTagsByView(env.DB, id, DEFAULT_VIEW, now),
+  ]);
+  const diff = allTags === null ? null : diffTagShares(allTags, tags);
   const path = `/p/${encodeURIComponent(id)}`;
   const pageUrl = new URL(path, request.url).toString();
-  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path));
+  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff));
 }

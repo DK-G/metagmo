@@ -500,4 +500,39 @@ a {
   border-radius: 8px;
   font-weight: 900;
 }
+
+/* 全体との差（Q-011）。<details> で開く追加の 1 枚 */
+.view-diff {
+  border-top: 1px solid var(--line);
+  padding: 18px clamp(16px, 3vw, 28px);
+}
+
+.view-diff summary {
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.diff-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.diff-row h4 {
+  margin: 14px 0 8px;
+  font-size: 14px;
+}
+
+.diff-words {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 18px;
+}
+
+.diff-words .cloud-word em {
+  color: var(--muted);
+  font-size: max(11px, calc(var(--size) * 0.28));
+  font-style: normal;
+  font-weight: 800;
+}
 `;
