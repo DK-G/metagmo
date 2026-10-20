@@ -138,7 +138,7 @@ ${renderDiffRow(diff.down, max, true, "この視界で比率の下がったタ�
   return `<details class="view-diff">
 <summary>全体との差を見る</summary>
 <p class="diff-note">比率はタグの票数 ÷ ページの票数。全体での比率と、この視界での比率の差です。${
-    standardized ? "直近一週間の視界では票が少ないので、語の大きさと並びは、その票数なら偶然に出る揺れで差を割った値です。" : ""
+    standardized ? "直近一週間のボタンを押した視界では、票が少ないと比率が偶然に大きく動くので、語の大きさと並びは、その票数なら偶然に出る揺れで差を割った値です。" : ""
   }</p>
 ${body}
 </details>`;
