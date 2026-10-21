@@ -4,6 +4,8 @@ import { handlePage } from "./page";
 
 export interface Env {
   DB: D1Database;
+  /** Turnstile の秘密鍵（`wrangler secret put TURNSTILE_SECRET_KEY`）。無いと書き込みは 503。 */
+  TURNSTILE_SECRET_KEY?: string;
 }
 
 export default {

@@ -1,10 +1,11 @@
 <!-- CURRENT-START -->
-## 現在地（2026-10-20）
+## 現在地（2026-10-21）
 - フェーズ: R1 MVP。土台は Cloudflare Workers＋D1（決定 2026-10-10、`spec.md` §7）。
-- main: R1-1〜R1-5 とトップ一覧（Q-012）に加え、Q-011「全体との差」の 2 段表示を 10-20 統合。D-007（票なしは比べない）・D-008（直近一週間は揺れで割る）・D-009（`<details>` のまま）を反映。
-- 検証: `npm test` 135 件・typecheck・lint 通過。手元の Worker で `/p/:id?recent=1` の差の 2 段と、票なし視界の 1 行をブラウザで目視済み。
-- 次の一手: Q-007 荒らし対策（Turnstile＋IP ごとの流量制限）。順番と完了基準は `D:/dev/agents/queue/metagmo.md`。
-- 本番 D1 は未作成・公開は未実行。公開前に投票者 IP の保存方針を決める（Q-007 の時）。
+- main: R1-1〜R1-5・トップ一覧（Q-012）・Q-011「全体との差」まで統合済み（10-20）。
+- 枝 `agent/metagmo/1021-abuse-guard`（採否待ち）: Q-007 荒らし対策。書き込み 4 経路に IP ごとの流量制限（D1 `rate_limits`、10 分窓・投稿 20／投票 60）と Turnstile 検証（`X-Turnstile-Token`）。鍵が無ければ 503。詳細は README。
+- 検証（枝）: `npm test` 144 件・typecheck・lint 通過。
+- 次の一手: 枝の採否。公開前に投票者 IP と `rate_limits` の IP の保存方針、画面側の Turnstile ウィジェット（今は投稿画面が無い）を決める。順番は `D:/dev/agents/queue/metagmo.md`。
+- 本番 D1 は未作成・公開は未実行。
 <!-- CURRENT-END -->
 
 ## 引継ぎ（2026-10-20・Q-011 の統合）

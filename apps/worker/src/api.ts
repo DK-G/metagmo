@@ -1,7 +1,9 @@
 // R1-2 API（認証なし）。ページ・ファクト・タグ・投票の基本操作。
 // 一覧は q の部分一致検索と sort を受ける。タグは視界 3 ボタンも重ねられる（views.ts）。
+// 書き込み（POST）は流量制限と Turnstile を通ってから受ける（guard.ts）。
 
 import type { Env } from "./index";
+import { guardWrite, type WriteKind } from "./guard";
 import { InputError, LIMITS, optionalText, requiredHttpUrl, requiredText, voteType } from "./validate";
 import { listTagsByView, parseViewState } from "./views";
 import { parseSearch } from "./search";
@@ -189,6 +191,11 @@ async function createVote(request: Request, env: Env, tagId: string) {
   return json({ tag: await tagById(env, tagId) }, 201);
 }
 
+// 書き込みの経路だけを守る。経路違い（404/405）は守りより先に返す。
+async function guarded(request: Request, env: Env, kind: WriteKind, write: () => Promise<Response>) {
+  return (await guardWrite(request, env, kind)) ?? write();
+}
+
 async function route(request: Request, env: Env, segments: string[]): Promise<Response> {
   const method = request.method;
   const params = new URL(request.url).searchParams;
@@ -198,7 +205,7 @@ async function route(request: Request, env: Env, segments: string[]): Promise<Re
   if (resource === "entities") {
     if (id === undefined) {
       if (method === "GET") return listEntities(env, params);
-      if (method === "POST") return createEntity(request, env);
+      if (method === "POST") return guarded(request, env, "post", () => createEntity(request, env));
       return methodNotAllowed("GET, POST");
     }
     if (sub === undefined) {
@@ -207,19 +214,19 @@ async function route(request: Request, env: Env, segments: string[]): Promise<Re
     }
     if (sub === "facts") {
       if (method === "GET") return listFacts(env, id);
-      if (method === "POST") return createFact(request, env, id);
+      if (method === "POST") return guarded(request, env, "post", () => createFact(request, env, id));
       return methodNotAllowed("GET, POST");
     }
     if (sub === "tags") {
       if (method === "GET") return listTags(env, id, params);
-      if (method === "POST") return createTag(request, env, id);
+      if (method === "POST") return guarded(request, env, "post", () => createTag(request, env, id));
       return methodNotAllowed("GET, POST");
     }
     return notFound();
   }
 
   if (resource === "tags" && id !== undefined && sub === "vote") {
-    if (method === "POST") return createVote(request, env, id);
+    if (method === "POST") return guarded(request, env, "vote", () => createVote(request, env, id));
     return methodNotAllowed("POST");
   }
 

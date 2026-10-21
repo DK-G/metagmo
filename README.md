@@ -36,6 +36,14 @@
 - `GET /api/entities/:id/tags?q=東京&sort=newest`: タグ文言の部分一致。既定は `score_desc`。`recent`・`consensus`・`controversy` と併用可能で、スコアは視界内の票から計算。
 - `q` は前後の空白を除き最大200文字。空なら全件。`%`・`_` も文字として扱う。ASCIIの大文字小文字は区別しない。並びは `score_desc` / `newest` のみ、同点は作成日時の降順・id順。ページの上限100件は検索と並び替えの後で適用。
 
+## 書き込みの荒らし対策（Q-007）
+
+- 書き込み（`POST` のページ・ファクト・タグ・投票）は、接続元 IP（`CF-Connecting-IP`）ごとの流量制限と Cloudflare Turnstile を通ってから受けます。実装は `apps/worker/src/guard.ts`。
+- 流量: 10 分の固定窓で、投稿（ページ・ファクト・タグの合計）20 件・投票 60 票まで。超えると `429`（`Retry-After` つき）。回数は D1 の `rate_limits` 表（`migrations/0003`）。検証に落ちた試行も数えます。
+- Turnstile: ウィジェットのトークンを `X-Turnstile-Token` ヘッダーで送ります。無い・落ちたら `403`。秘密鍵 `TURNSTILE_SECRET_KEY` が無い時は書き込みを止めます（`503`）。
+- 公開時: `wrangler secret put TURNSTILE_SECRET_KEY` で鍵を入れます（鍵はリポジトリに置かない）。手元の `wrangler dev` で書き込むには `.dev.vars`（gitignore 済み）に Cloudflare の試験用の鍵を書きます。
+- テストは外へ通信しません（`vitest.config.ts` の `outboundService` が siteverify の代役をします）。
+
 ## 進め方
 - プロジェクトの全体像と目的は `GEMINI.md` を参照してください。
 - 長期計画は `RoadMap.md`、日々の作業は `task.md` にて管理します。

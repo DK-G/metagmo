@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import { WRITE_HEADERS } from "./write-headers";
 import { diffSize, escapeHtml, wordSize } from "../src/page";
 
 const BASE = "https://example.com";
@@ -8,7 +9,7 @@ const get = (path: string, init?: RequestInit) => SELF.fetch(`${BASE}${path}`, i
 const post = (path: string, body: unknown) =>
   SELF.fetch(`${BASE}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: WRITE_HEADERS(),
     body: JSON.stringify(body),
   });
 

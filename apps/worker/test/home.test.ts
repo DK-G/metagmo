@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import { WRITE_HEADERS } from "./write-headers";
 import { renderHomePage } from "../src/home";
 
 const BASE = "https://example.com";
@@ -9,7 +10,7 @@ const get = (path: string, init?: RequestInit) => SELF.fetch(`${BASE}${path}`, i
 async function newEntity(title: string, summary: string, createdAt: string) {
   const res = await SELF.fetch(`${BASE}/api/entities`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: WRITE_HEADERS(),
     body: JSON.stringify({ title, summary }),
   });
   expect(res.status).toBe(201);
