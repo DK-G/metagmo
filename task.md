@@ -5,7 +5,7 @@
 - 枝 `agent/metagmo/1021-abuse-guard`（10-21 Kira 承認・main 統合）: Q-007 荒らし対策。書き込み 4 経路に IP ごとの流量制限（D1 `rate_limits`、10 分窓・投稿 20／投票 60）と Turnstile 検証（`X-Turnstile-Token`）。鍵が無ければ 503。詳細は README。
 - 検証（10-22 採用候補）: `npm test` 147 件・typecheck・lint 通過。
 - D-010（10-22 今回の承認で採用）: IP は別鍵 `IP_HASH_KEY` の HMAC-SHA256 で保存・比較、鍵が無ければ 503。
-- 次の一手: D-011 の判断と公開前の別鍵設定。画面側の Turnstile ウィジェット（今は投稿画面が無い）。順番は `D:/dev/agents/queue/metagmo.md`。
+- D-011は既定の20件/60票を採用。Turnstile設定と公開はユーザーの「あと回し」で保留。コードはpush対象。画面側のウィジェットは投稿画面導入時。順番は `D:/dev/agents/queue/metagmo.md`。
 - 本番 D1 は未作成・公開は未実行。
 <!-- CURRENT-END -->
 
