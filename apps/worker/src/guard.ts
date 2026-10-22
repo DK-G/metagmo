@@ -2,6 +2,8 @@
 // 1) 接続元 IP ごとの流量制限（D1 の固定窓カウンタ。migrations/0003）
 // 2) Cloudflare Turnstile の検証（トークンは X-Turnstile-Token ヘッダーで受ける）
 // 流量を先に数えるので、検証に落ちた試行も上限に数える（siteverify を連打させない）。
+// IP は生のまま保存しない。秘密鍵 IP_HASH_KEY の HMAC-SHA256 に置き換えてから数え・票に残す（D-010）。
+// 同じ人かは分かるが、鍵を持たない限り元の IP には戻せない。
 
 import type { Env } from "./index";
 
@@ -19,12 +21,30 @@ const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverif
 
 const UNKNOWN_IP = "unknown";
 
+/** 接続元 IP の HMAC-SHA256（16 進）。保存と比較はすべてこの値で行う。 */
+export async function hashIp(key: string, ip: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const cryptoKey = await crypto.subtle.importKey("raw", encoder.encode(key), { name: "HMAC", hash: "SHA-256" }, false, [
+    "sign",
+  ]);
+  const mac = await crypto.subtle.sign("HMAC", cryptoKey, encoder.encode(ip));
+  return [...new Uint8Array(mac)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** 票に残す接続元 IP のハッシュ。ヘッダーが無ければ null。guardWrite を通った後に呼ぶ。 */
+export async function voterIpHash(request: Request, env: Env): Promise<string | null> {
+  const ip = request.headers.get("CF-Connecting-IP");
+  if (ip === null) return null;
+  if (!env.IP_HASH_KEY) throw new Error("IP_HASH_KEY is not configured");
+  return hashIp(env.IP_HASH_KEY, ip);
+}
+
 /** 窓の始まり（UTC の ISO 文字列）。 */
 export function windowStart(now: Date): string {
   return new Date(Math.floor(now.getTime() / RATE_WINDOW_MS) * RATE_WINDOW_MS).toISOString();
 }
 
-/** この試行を数え、上限を超えていれば次の窓までの秒数を返す。超えていなければ null。 */
+/** この試行を数え、上限を超えていれば次の窓までの秒数を返す。超えていなければ null。ip はハッシュ済みの値。 */
 export async function countAttempt(db: D1Database, ip: string, kind: WriteKind, now: Date): Promise<number | null> {
   const start = windowStart(now);
   const [, upsert] = await db.batch<{ count: number }>([
@@ -64,7 +84,11 @@ export async function verifyTurnstile(secret: string, token: string, ip: string 
 export async function guardWrite(request: Request, env: Env, kind: WriteKind): Promise<Response | null> {
   const ip = request.headers.get("CF-Connecting-IP");
 
-  const retryAfter = await countAttempt(env.DB, ip ?? UNKNOWN_IP, kind, new Date());
+  // ハッシュの鍵が無ければ数えられないので、流量より先に止める（生の IP を保存しないため）。
+  const hashKey = env.IP_HASH_KEY;
+  if (!hashKey) return Response.json({ error: "ip_hash_not_configured" }, { status: 503 });
+
+  const retryAfter = await countAttempt(env.DB, await hashIp(hashKey, ip ?? UNKNOWN_IP), kind, new Date());
   if (retryAfter !== null) {
     return Response.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": String(retryAfter) } });
   }

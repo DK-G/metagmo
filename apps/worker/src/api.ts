@@ -3,7 +3,7 @@
 // 書き込み（POST）は流量制限と Turnstile を通ってから受ける（guard.ts）。
 
 import type { Env } from "./index";
-import { guardWrite, type WriteKind } from "./guard";
+import { guardWrite, voterIpHash, type WriteKind } from "./guard";
 import { InputError, LIMITS, optionalText, requiredHttpUrl, requiredText, voteType } from "./validate";
 import { listTagsByView, parseViewState } from "./views";
 import { parseSearch } from "./search";
@@ -177,13 +177,14 @@ async function createVote(request: Request, env: Env, tagId: string) {
   const body = await readBody(request);
   const type = voteType(body, "vote_type");
 
-  // 匿名の票は同じタグへ何票でも入る（表の定義どおり）。IP は荒らし対策（Q-007）用に残す。
+  // 匿名の票は同じタグへ何票でも入る（表の定義どおり）。IP は荒らし対策（Q-007）用に、HMAC にして残す（D-010）。
+  const ipHash = await voterIpHash(request, env);
   const id = crypto.randomUUID();
   await env.DB.batch([
     env.DB.prepare("INSERT INTO votes (id, tag_id, ip_address, vote_type) VALUES (?, ?, ?, ?)").bind(
       id,
       tagId,
-      request.headers.get("CF-Connecting-IP"),
+      ipHash,
       type,
     ),
     historyRow(env, "vote", "tag", tagId, { vote_id: id, vote_type: type }),

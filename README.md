@@ -41,7 +41,8 @@
 - 書き込み（`POST` のページ・ファクト・タグ・投票）は、接続元 IP（`CF-Connecting-IP`）ごとの流量制限と Cloudflare Turnstile を通ってから受けます。実装は `apps/worker/src/guard.ts`。
 - 流量: 10 分の固定窓で、投稿（ページ・ファクト・タグの合計）20 件・投票 60 票まで。超えると `429`（`Retry-After` つき）。回数は D1 の `rate_limits` 表（`migrations/0003`）。検証に落ちた試行も数えます。
 - Turnstile: ウィジェットのトークンを `X-Turnstile-Token` ヘッダーで送ります。無い・落ちたら `403`。秘密鍵 `TURNSTILE_SECRET_KEY` が無い時は書き込みを止めます（`503`）。
-- 公開時: `wrangler secret put TURNSTILE_SECRET_KEY` で鍵を入れます（鍵はリポジトリに置かない）。手元の `wrangler dev` で書き込むには `.dev.vars`（gitignore 済み）に Cloudflare の試験用の鍵を書きます。
+- IP は生のまま保存しません（D-010）。秘密鍵 `IP_HASH_KEY` で HMAC-SHA256 した 16 進の値を、`rate_limits.ip` と `votes.ip_address` に入れて数え・比べます。鍵が無い時は書き込みを止めます（`503`、`ip_hash_not_configured`）。鍵を替えると過去の値とは突き合わなくなります。
+- 公開時: `wrangler secret put TURNSTILE_SECRET_KEY` と `wrangler secret put IP_HASH_KEY`（Turnstile とは別の乱数）で鍵を入れます（鍵はリポジトリに置かない）。手元の `wrangler dev` で書き込むには `.dev.vars`（gitignore 済み）に Cloudflare の試験用の Turnstile 鍵と任意の `IP_HASH_KEY` を書きます。
 - テストは外へ通信しません（`vitest.config.ts` の `outboundService` が siteverify の代役をします）。
 
 ## 進め方

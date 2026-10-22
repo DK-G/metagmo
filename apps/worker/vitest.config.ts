@@ -13,7 +13,7 @@ export default defineConfig(async () => {
       cloudflareTest({
         wrangler: { configPath: "./wrangler.jsonc" },
         miniflare: {
-          bindings: { TEST_MIGRATIONS: migrations, TURNSTILE_SECRET_KEY: "test-secret" },
+          bindings: { TEST_MIGRATIONS: migrations, TURNSTILE_SECRET_KEY: "test-secret", IP_HASH_KEY: "test-ip-key" },
           // Worker の外向きの通信は外へ出さずにここで受ける。Turnstile は "pass" のトークンだけ通す。
           outboundService: async (request: Request) => {
             if (new URL(request.url).hostname !== "challenges.cloudflare.com") {

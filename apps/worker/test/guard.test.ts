@@ -1,6 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { countAttempt, RATE_LIMITS, RATE_WINDOW_MS, windowStart } from "../src/guard";
+import { countAttempt, hashIp, RATE_LIMITS, RATE_WINDOW_MS, windowStart } from "../src/guard";
 import worker from "../src/index";
 import { WRITE_HEADERS } from "./write-headers";
 
@@ -50,16 +50,17 @@ describe("Turnstile の検証", () => {
     expect(await count("SELECT COUNT(*) AS n FROM votes WHERE tag_id = ?", tagId)).toBe(0);
   });
 
-  it("秘密鍵が無ければ書き込みを止める（503）", async () => {
+  it("Turnstile の秘密鍵が無ければ書き込みを止める（503）", async () => {
     const res = await worker.fetch(
       new Request(`${BASE}/api/entities`, {
         method: "POST",
         headers: WRITE_HEADERS(),
         body: JSON.stringify({ title: "鍵なし", summary: "要約" }),
       }),
-      { DB: env.DB },
+      { DB: env.DB, IP_HASH_KEY: env.IP_HASH_KEY },
     );
     expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "turnstile_not_configured" });
     expect(await count("SELECT COUNT(*) AS n FROM entities WHERE title = ?", "鍵なし")).toBe(0);
   });
 
@@ -126,5 +127,40 @@ describe("IP ごとの流量制限", () => {
     expect(await countAttempt(env.DB, ip, "post", t1)).toBeNull();
     const rows = await env.DB.prepare("SELECT window_start FROM rate_limits WHERE ip = ?").bind(ip).all();
     expect(rows.results).toEqual([{ window_start: windowStart(t1) }]);
+  });
+});
+
+describe("IP のハッシュ（D-010）", () => {
+  it("同じ鍵と IP なら同じ値、鍵か IP が違えば違う値（64 桁の 16 進）", async () => {
+    const a = await hashIp("key-1", "203.0.113.50");
+    expect(a).toMatch(/^[0-9a-f]{64}$/);
+    expect(await hashIp("key-1", "203.0.113.50")).toBe(a);
+    expect(await hashIp("key-2", "203.0.113.50")).not.toBe(a);
+    expect(await hashIp("key-1", "203.0.113.51")).not.toBe(a);
+  });
+
+  it("流量の表には生の IP でなくハッシュが入る", async () => {
+    const ip = "203.0.113.60";
+    const res = await post("/api/entities", { title: "ハッシュ", summary: "要約" }, { ...WRITE_HEADERS(), "CF-Connecting-IP": ip });
+    expect(res.status).toBe(201);
+    expect(await count("SELECT COUNT(*) AS n FROM rate_limits WHERE ip = ?", ip)).toBe(0);
+    const hashed = await hashIp(env.IP_HASH_KEY as string, ip);
+    expect(await count("SELECT COUNT(*) AS n FROM rate_limits WHERE ip = ?", hashed)).toBe(1);
+  });
+
+  it("ハッシュの鍵が無ければ、数える前に書き込みを止める（503）", async () => {
+    const ip = "203.0.113.70";
+    const res = await worker.fetch(
+      new Request(`${BASE}/api/entities`, {
+        method: "POST",
+        headers: { ...WRITE_HEADERS(), "CF-Connecting-IP": ip },
+        body: JSON.stringify({ title: "ハッシュ鍵なし", summary: "要約" }),
+      }),
+      { DB: env.DB, TURNSTILE_SECRET_KEY: env.TURNSTILE_SECRET_KEY },
+    );
+    expect(res.status).toBe(503);
+    expect(await res.json()).toEqual({ error: "ip_hash_not_configured" });
+    expect(await count("SELECT COUNT(*) AS n FROM entities WHERE title = ?", "ハッシュ鍵なし")).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM rate_limits WHERE ip = ?", ip)).toBe(0);
   });
 });

@@ -1,5 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
+import { hashIp } from "../src/guard";
 import { WRITE_HEADERS } from "./write-headers";
 
 const BASE = "https://example.com";
@@ -281,14 +282,15 @@ describe("投票（votes）", () => {
     expect(res.status).toBe(404);
   });
 
-  it("送信元の IP を票に残す", async () => {
+  it("送信元の IP は生のままでなく HMAC にして票に残す", async () => {
     const entity = await newEntity();
     const tag = await newTag(entity.id, "x");
     await post(`/api/tags/${tag.id}/vote`, { vote_type: "up" }, { "CF-Connecting-IP": "203.0.113.7" });
     const row = await env.DB.prepare("SELECT ip_address FROM votes WHERE tag_id = ?")
       .bind(tag.id)
       .first<{ ip_address: string | null }>();
-    expect(row?.ip_address).toBe("203.0.113.7");
+    expect(row?.ip_address).toBe(await hashIp(env.IP_HASH_KEY as string, "203.0.113.7"));
+    expect(row?.ip_address).not.toContain("203.0.113.7");
   });
 });
 
