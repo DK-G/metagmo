@@ -3,7 +3,7 @@
 // 2) Cloudflare Turnstile の検証（トークンは X-Turnstile-Token ヘッダーで受ける）
 // 流量を先に数えるので、検証に落ちた試行も上限に数える（siteverify を連打させない）。
 // IP は生のまま保存しない。秘密鍵 IP_HASH_KEY の HMAC-SHA256 に置き換えてから数え・票に残す（D-010）。
-// 同じ人かは分かるが、鍵を持たない限り元の IP には戻せない。
+// 同じ IP の試行を突き合わせる値であり、同一人物を識別するものではない。
 
 import type { Env } from "./index";
 
