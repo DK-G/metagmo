@@ -1,7 +1,7 @@
 import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { WRITE_HEADERS } from "./write-headers";
-import { diffSize, escapeHtml, wordSize } from "../src/page";
+import { certainty, diffSize, escapeHtml, wordSize } from "../src/page";
 
 const BASE = "https://example.com";
 
@@ -80,18 +80,20 @@ describe("ページ表示（/p/:id）", () => {
     expect(html).toContain("<strong>2</strong><span>Facts</span>");
   });
 
-  it("ワードクラウドの語の大きさは up - down で決まり、マイナスは別の色", async () => {
-    const id = await newEntity("大きさ", "ネットスコアで語の大きさが変わる");
-    await newTag(id, "大きい語", 5, 1); // +4
-    await newTag(id, "中くらい", 3, 1); // +2
-    await newTag(id, "反対多め", 0, 2); // -2
-    await newTag(id, "票なし", 0, 0); // 0
+  it("ワードクラウドの語の大きさは総票数、濃さは偏りの確かさで決まり、反対寄りは別の色（D-012）", async () => {
+    const id = await newEntity("大きさ", "総票数で語の大きさが変わる");
+    await newTag(id, "割れている", 3, 3); // 6 票・z 0
+    await newTag(id, "賛成寄り", 4, 0); // 4 票・z 2
+    await newTag(id, "反対寄り", 0, 2); // 2 票・z 1.41
+    await newTag(id, "票なし", 0, 0); // 0 票
 
     const html = await (await get(`/p/${id}`)).text();
     const sizes = Object.fromEntries(cloudSizes(html));
-    expect(sizes).toEqual({ 大きい語: 56, 中くらい: 37, 反対多め: 37, 票なし: 18 });
-    expect(html).toMatch(/class="cloud-word negative"[^>]*>反対多め/);
-    expect(html).toMatch(/class="cloud-word"[^>]*>大きい語/);
+    expect(sizes).toEqual({ 割れている: 56, 賛成寄り: 43, 反対寄り: 31, 票なし: 18 });
+    expect(html).toMatch(/class="cloud-word" style="--sure: 0;[^>]*>割れている/);
+    expect(html).toMatch(/class="cloud-word" style="--sure: 0.67;[^>]*>賛成寄り/);
+    expect(html).toMatch(/class="cloud-word negative" style="--sure: 0.47;[^>]*>反対寄り/);
+    expect(html).toContain("語の大きさは票の総数（賛成 + 反対）");
   });
 
   it("入力の文字は HTML として解釈させない", async () => {
@@ -130,11 +132,19 @@ describe("ページ表示（/p/:id）", () => {
 });
 
 describe("部品", () => {
-  it("wordSize は 18〜56 に写す", () => {
+  it("wordSize は総票数を 18〜56 に写す", () => {
     expect(wordSize(0, 10)).toBe(18);
     expect(wordSize(10, 10)).toBe(56);
-    expect(wordSize(-5, 10)).toBe(37);
+    expect(wordSize(5, 10)).toBe(37);
     expect(wordSize(0, 0)).toBe(18);
+  });
+
+  it("certainty は z = |up − down| ÷ √(up + down) を 0〜3 で 0〜1 に写す", () => {
+    expect(certainty(10, 10)).toBe(0);
+    expect(certainty(18, 2)).toBe(1); // z 3.58 → 上限
+    expect(certainty(1, 0)).toBe(0.33);
+    expect(certainty(0, 9)).toBe(1); // z 3 ちょうど
+    expect(certainty(0, 0)).toBe(0);
   });
 
   it("escapeHtml は 5 文字を置き換える", () => {

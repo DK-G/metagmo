@@ -359,6 +359,8 @@ a {
   border: 0;
   background: transparent;
   color: var(--green);
+  /* 濃さ --sure（0〜1）で灰色から向きの色へ寄せる（D-012）。--sure の無い差の 2 段は 1＝今の色のまま。 */
+  color: color-mix(in srgb, var(--green) calc(var(--sure, 1) * 100%), var(--muted));
   font-size: var(--size);
   font-weight: 900;
   letter-spacing: 0;
@@ -367,6 +369,7 @@ a {
 
 .cloud-word.negative {
   color: var(--red);
+  color: color-mix(in srgb, var(--red) calc(var(--sure, 1) * 100%), var(--muted));
 }
 
 .cloud-word small {

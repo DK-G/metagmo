@@ -35,9 +35,20 @@ interface FactRow {
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
 export const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ESCAPES[c]);
 
-/** ワードクラウドの語の大きさ（px）。|up - down| を最大値で割って 18〜56 に写す（試作と同じ式）。 */
-export function wordSize(score: number, maxAbsScore: number): number {
-  return 18 + Math.round((Math.abs(score) / Math.max(1, maxAbsScore)) * 38);
+/** ワードクラウドの語の大きさ（px）。総票数（up + down）を最大値で割って 18〜56 に写す（D-012）。 */
+export function wordSize(total: number, maxTotal: number): number {
+  return 18 + Math.round((total / Math.max(1, maxTotal)) * 38);
+}
+
+/**
+ * 偏りの確かさ（色の濃さ、0〜1）。z = |up − down| ÷ √(up + down) を 0〜3 で 0〜1 に写し、3 を超えたら 1（D-012）。
+ * 10 対 10 は 0（灰色）、18 対 2 は 1、1 対 0 は 0.33。票が無ければ 0。
+ */
+export function certainty(up: number, down: number): number {
+  const total = up + down;
+  if (total === 0) return 0;
+  const z = Math.abs(up - down) / Math.sqrt(total);
+  return Math.round(Math.min(1, z / 3) * 100) / 100;
 }
 
 // 審査の画面が無いので、審査待ちもすぐ出す。隠すのは却下（rejected）だけ（決裁 2026-10-12）。
@@ -72,11 +83,11 @@ function renderFacts(facts: FactRow[]): string {
 
 function renderCloud(tags: ViewTag[]): string {
   if (tags.length === 0) return `<div class="empty-state">この視界に一致するタグはまだありません。</div>`;
-  const max = Math.max(1, ...tags.map((t) => Math.abs(t.score)));
+  const max = Math.max(1, ...tags.map((t) => t.up + t.down));
   return tags
     .map((t) => {
       const cls = t.score < 0 ? "cloud-word negative" : "cloud-word";
-      return `<span class="${cls}" style="--size: ${wordSize(t.score, max)}px" title="👍${t.up} 👎${t.down} 合計${t.up + t.down}">${escapeHtml(t.tag_text)}<small>👍${t.up} 👎${t.down}</small></span>`;
+      return `<span class="${cls}" style="--sure: ${certainty(t.up, t.down)}; --size: ${wordSize(t.up + t.down, max)}px" title="👍${t.up} 👎${t.down} 合計${t.up + t.down}">${escapeHtml(t.tag_text)}<small>👍${t.up} 👎${t.down}</small></span>`;
     })
     .join("\n");
 }
@@ -193,7 +204,7 @@ ${renderFacts(facts)}
 </div>
 </aside>
 <section class="tag-experience" aria-label="タグ視界">
-<div class="toolbar"><div><h2>Word Cloud</h2><p>ボタンを押すと、同じタグ群の見え方が変わります。語の大きさは賛成と反対の差（up − down）です。</p></div></div>
+<div class="toolbar"><div><h2>Word Cloud</h2><p>ボタンを押すと、同じタグ群の見え方が変わります。語の大きさは票の総数（賛成 + 反対）、色は賛成寄りか反対寄りか、色の濃さは偏りの確かさです。票が割れているタグは大きく灰色に出ます。</p></div></div>
 ${renderViewButtons(view, path)}
 <div class="cloud" aria-label="タグワードクラウド">
 ${renderCloud(tags)}
