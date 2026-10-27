@@ -1,11 +1,12 @@
 <!-- CURRENT-START -->
-## 現在地（2026-10-22）
+## 現在地（2026-10-27）
 - フェーズ: R1 MVP。土台は Cloudflare Workers＋D1（決定 2026-10-10、`spec.md` §7）。
 - main: R1-1〜R1-5・トップ一覧（Q-012）・Q-011「全体との差」まで統合済み（10-20）。
 - 枝 `agent/metagmo/1021-abuse-guard`（10-21 Kira 承認・main 統合）: Q-007 荒らし対策。書き込み 4 経路に IP ごとの流量制限（D1 `rate_limits`、10 分窓・投稿 20／投票 60）と Turnstile 検証（`X-Turnstile-Token`）。鍵が無ければ 503。詳細は README。
-- 検証（10-22 採用候補）: `npm test` 147 件・typecheck・lint 通過。
+- 検証（10-27）: `npm test` 148 件・typecheck・lint 通過。
 - D-010（10-22 今回の承認で採用）: IP は別鍵 `IP_HASH_KEY` の HMAC-SHA256 で保存・比較、鍵が無ければ 503。
 - D-011は既定の20件/60票を採用。Turnstile設定と公開はユーザーの「あと回し」で保留。コードはpush対象。画面側のウィジェットは投稿画面導入時。順番は `D:/dev/agents/queue/metagmo.md`。
+- D-012（10-27 Kira 承認・main 統合）: `/p/:id` の雲は語の大きさ＝総票数、色の濃さ＝偏りの確かさ z（0〜3→0〜1）。手元 D1 の見本で目視済み（10対10 は大きく灰色、1対0 は小さく薄い、375px 幅で横はみ出しなし）。
 - 本番 D1 は未作成・公開は未実行。
 <!-- CURRENT-END -->
 
