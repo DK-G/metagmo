@@ -1,6 +1,7 @@
 // R1-3 ページ表示とワードクラウド。Worker が HTML をそのまま返す（検索結果と X のカードに載せるため）。
 // 構成と見た目は docs/prototype/page.jsx・globals.css を写した。視界ボタン（Q-006）は URL の値（?recent= など）で切り替える。
 // 「全体との差」（Q-011）は <details> で開く追加の 1 枚。既定の表示はワードクラウドのまま。
+// 雲の上にページの輪郭（D-013、outline.ts）を 1 枚置く。
 // 投稿・投票の画面はまだ無い。
 
 import type { Env } from "./index";
@@ -17,6 +18,7 @@ import {
 } from "./views";
 import { renderViewButtons } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
+import { renderOutline } from "./outline";
 
 interface EntityRow {
   id: string;
@@ -155,7 +157,10 @@ ${body}
 </details>`;
 }
 
-/** pageUrl は canonical に使う（視界の値を付けない）。path は視界ボタンのリンク先。 */
+/**
+ * pageUrl は canonical に使う（視界の値を付けない）。path は視界ボタンのリンク先。
+ * allTags は視界ボタンが押されている時の全体のタグ（輪郭を薄く重ねる用）。未押しなら null で、tags が全体。
+ */
 export function renderEntityPage(
   entity: EntityRow,
   facts: FactRow[],
@@ -164,6 +169,7 @@ export function renderEntityPage(
   view: ViewState = DEFAULT_VIEW,
   path = `/p/${encodeURIComponent(entity.id)}`,
   diff: ViewDiff | null = null,
+  allTags: ViewTag[] | null = null,
 ): string {
   const title = escapeHtml(entity.title);
   const summary = escapeHtml(entity.summary);
@@ -206,6 +212,7 @@ ${renderFacts(facts)}
 <section class="tag-experience" aria-label="タグ視界">
 <div class="toolbar"><div><h2>Word Cloud</h2><p>ボタンを押すと、同じタグ群の見え方が変わります。語の大きさは票の総数（賛成 + 反対）、色は賛成寄りか反対寄りか、色の濃さは偏りの確かさです。票が割れているタグは大きく灰色に出ます。</p></div></div>
 ${renderViewButtons(view, path)}
+${allTags === null ? renderOutline(tags, null) : renderOutline(allTags, tags)}
 <div class="cloud" aria-label="タグワードクラウド">
 ${renderCloud(tags)}
 </div>
@@ -257,5 +264,5 @@ export async function handlePage(request: Request, env: Env, id: string): Promis
   const diff = allTags === null ? null : diffTagShares(allTags, tags, { standardize: shouldStandardizeDiff(parsed.view) });
   const path = `/p/${encodeURIComponent(id)}`;
   const pageUrl = new URL(path, request.url).toString();
-  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff));
+  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff, allTags));
 }

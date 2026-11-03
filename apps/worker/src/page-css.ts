@@ -538,4 +538,50 @@ a {
   font-style: normal;
   font-weight: 800;
 }
+
+/* ページの輪郭（D-013）。左が賛成・右が反対。視界を押した時は全体の輪郭を薄い線で重ねる。 */
+.page-outline {
+  margin: 0;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.page-outline svg {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.outline-up {
+  fill: var(--green);
+  fill-opacity: 0.75;
+}
+
+.outline-down {
+  fill: var(--red);
+  fill-opacity: 0.75;
+}
+
+.outline-all {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 2;
+  opacity: 0.7;
+}
+
+.outline-axis {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.page-outline figcaption {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
 `;
