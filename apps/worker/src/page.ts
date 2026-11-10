@@ -1,7 +1,7 @@
 // R1-3 ページ表示とワードクラウド。Worker が HTML をそのまま返す（検索結果と X のカードに載せるため）。
 // 構成と見た目は docs/prototype/page.jsx・globals.css を写した。視界ボタン（Q-006）は URL の値（?recent= など）で切り替える。
 // 「全体との差」（Q-011）は <details> で開く追加の 1 枚。既定の表示はワードクラウドのまま。
-// 雲の上にページの輪郭（D-013、outline.ts）を 1 枚置く。
+// 雲の上にページの輪郭（D-013、outline.ts）を 1 枚、その下に票の集まり方の帯（D-014、spread.ts）を 1 本置く。
 // 投稿・投票の画面はまだ無い。
 
 import type { Env } from "./index";
@@ -19,6 +19,7 @@ import {
 import { renderViewButtons } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 import { renderOutline } from "./outline";
+import { renderSpread } from "./spread";
 
 interface EntityRow {
   id: string;
@@ -213,6 +214,7 @@ ${renderFacts(facts)}
 <div class="toolbar"><div><h2>Word Cloud</h2><p>ボタンを押すと、同じタグ群の見え方が変わります。語の大きさは票の総数（賛成 + 反対）、色は賛成寄りか反対寄りか、色の濃さは偏りの確かさです。票が割れているタグは大きく灰色に出ます。</p></div></div>
 ${renderViewButtons(view, path)}
 ${allTags === null ? renderOutline(tags, null) : renderOutline(allTags, tags)}
+${allTags === null ? renderSpread(tags, null) : renderSpread(allTags, tags)}
 <div class="cloud" aria-label="タグワードクラウド">
 ${renderCloud(tags)}
 </div>

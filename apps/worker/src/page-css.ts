@@ -584,4 +584,61 @@ a {
   font-size: 12px;
   text-align: center;
 }
+
+/* 票の集まり方の帯（D-014）。全幅＝票のあるタグの数、濃い部分＝実質のタグ数、点線の端＝まだ固まっていない。 */
+.vote-spread {
+  margin: 0;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.vote-spread svg {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.spread-labels {
+  fill: var(--blue);
+  fill-opacity: 0.18;
+}
+
+.spread-effective {
+  fill: var(--blue);
+  fill-opacity: 0.7;
+}
+
+.spread-end {
+  stroke: var(--blue);
+  stroke-width: 1.5;
+}
+
+.spread-open {
+  stroke-dasharray: 2 2;
+}
+
+.spread-all {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+  opacity: 0.7;
+}
+
+.spread-all-effective {
+  stroke: var(--muted);
+  stroke-width: 1.2;
+  opacity: 0.7;
+}
+
+.vote-spread figcaption {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
 `;
