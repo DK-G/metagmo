@@ -2,7 +2,7 @@
 // 構成と見た目は docs/prototype/page.jsx・globals.css を写した。視界ボタン（Q-006）は URL の値（?recent= など）で切り替える。
 // 「全体との差」（Q-011）は <details> で開く追加の 1 枚。既定の表示はワードクラウドのまま。
 // 雲の上にページの輪郭（D-013、outline.ts）を 1 枚、その下に票の集まり方の帯（D-014、spread.ts）を 1 本置く。
-// 投稿・投票の画面はまだ無い。
+// タグを足すフォーム（Q-013）は write-forms.ts の部品を tag-list の下に置く。経路は form-routes.ts。
 
 import type { Env } from "./index";
 import {
@@ -20,6 +20,7 @@ import { renderViewButtons } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 import { renderOutline } from "./outline";
 import { renderSpread } from "./spread";
+import { FORM_CSS, renderTagForm, type FormNotice } from "./write-forms";
 
 interface EntityRow {
   id: string;
@@ -171,6 +172,7 @@ export function renderEntityPage(
   path = `/p/${encodeURIComponent(entity.id)}`,
   diff: ViewDiff | null = null,
   allTags: ViewTag[] | null = null,
+  tagForm = "",
 ): string {
   const title = escapeHtml(entity.title);
   const summary = escapeHtml(entity.summary);
@@ -189,7 +191,7 @@ export function renderEntityPage(
 <meta property="og:description" content="${summary}">
 <meta property="og:url" content="${url}">
 <meta name="twitter:card" content="summary">
-<style>${PAGE_CSS}</style>
+<style>${PAGE_CSS}${FORM_CSS}</style>
 </head>
 <body>
 <main class="app-shell">
@@ -221,6 +223,7 @@ ${renderCloud(tags)}
 <div class="tag-list">
 ${renderTagList(tags)}
 </div>
+${tagForm}
 ${renderViewDiff(diff, shouldStandardizeDiff(view))}
 </section>
 </section>
@@ -249,6 +252,20 @@ export async function handlePage(request: Request, env: Env, id: string): Promis
   if (request.method !== "GET") {
     return new Response("method not allowed", { status: 405, headers: { Allow: "GET" } });
   }
+  return pageResponse(request, env, id);
+}
+
+/**
+ * ページの HTML の応答。フォームの送信に失敗した時は、notice（理由の 1 行と入力値）と status を付けて同じページを返す。
+ * 視界は request の URL の値から読む。
+ */
+export async function pageResponse(
+  request: Request,
+  env: Env,
+  id: string,
+  notice: FormNotice | null = null,
+  status = 200,
+): Promise<Response> {
   const entity = await env.DB.prepare("SELECT id, title, summary FROM entities WHERE id = ?")
     .bind(id)
     .first<EntityRow>();
@@ -266,5 +283,6 @@ export async function handlePage(request: Request, env: Env, id: string): Promis
   const diff = allTags === null ? null : diffTagShares(allTags, tags, { standardize: shouldStandardizeDiff(parsed.view) });
   const path = `/p/${encodeURIComponent(id)}`;
   const pageUrl = new URL(path, request.url).toString();
-  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff, allTags));
+  const tagForm = renderTagForm(id, env.TURNSTILE_SITE_KEY, notice);
+  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff, allTags, tagForm), status);
 }
