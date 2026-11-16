@@ -6,7 +6,7 @@ import type { Env } from "./index";
 import { guardWrite, voterIpHash, type WriteKind } from "./guard";
 import { InputError, LIMITS, optionalText, requiredHttpUrl, requiredText, voteType } from "./validate";
 import { listTagsByView, parseViewState } from "./views";
-import { parseSearch } from "./search";
+import { parseSearch, searchEntities } from "./search";
 
 const MAX_BODY_BYTES = 16 * 1024;
 const LIST_LIMIT = 100;
@@ -69,20 +69,7 @@ async function tagById(env: Env, id: string) {
 }
 
 async function listEntities(env: Env, params: URLSearchParams) {
-  const { q, sort } = parseSearch(params, "newest");
-  const order = sort === "score_desc" ? "score DESC, e.created_at DESC, e.id" : "e.created_at DESC, e.id";
-  const { results } = await env.DB.prepare(
-    `SELECT e.id, e.title, e.summary, e.created_at, e.updated_at,
-       (SELECT COALESCE(SUM(CASE v.vote_type WHEN 'up' THEN 1 ELSE -1 END), 0)
-        FROM tags t JOIN votes v ON v.tag_id = t.id WHERE t.entity_id = e.id) AS score
-     FROM entities e
-     WHERE ?1 = '' OR instr(lower(e.title), lower(?1)) > 0
-       OR EXISTS (SELECT 1 FROM tags t WHERE t.entity_id = e.id AND instr(lower(t.tag_text), lower(?1)) > 0)
-     ORDER BY ${order} LIMIT ?2`,
-  )
-    .bind(q, LIST_LIMIT)
-    .all();
-  return json({ entities: results });
+  return json({ entities: await searchEntities(env.DB, parseSearch(params, "newest"), LIST_LIMIT) });
 }
 
 async function createEntity(request: Request, env: Env) {
