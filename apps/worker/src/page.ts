@@ -20,6 +20,7 @@ import { renderViewButtons } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 import { renderOutline } from "./outline";
 import { renderSpread } from "./spread";
+import { notFoundResponse, SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 interface EntityRow {
   id: string;
@@ -189,7 +190,7 @@ export function renderEntityPage(
 <meta property="og:description" content="${summary}">
 <meta property="og:url" content="${url}">
 <meta name="twitter:card" content="summary">
-<style>${PAGE_CSS}</style>
+<style>${PAGE_CSS}${SITE_CSS}</style>
 </head>
 <body>
 <main class="app-shell">
@@ -224,6 +225,7 @@ ${renderTagList(tags)}
 ${renderViewDiff(diff, shouldStandardizeDiff(view))}
 </section>
 </section>
+${SITE_FOOTER}
 </main>
 </body>
 </html>`;
@@ -231,12 +233,6 @@ ${renderViewDiff(diff, shouldStandardizeDiff(view))}
 
 const html = (body: string, status = 200) =>
   new Response(body, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
-
-const notFoundPage = () =>
-  html(
-    `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>見つかりません | メタグモ</title></head><body><p>このページは見つかりません。</p></body></html>`,
-    404,
-  );
 
 const badViewPage = () =>
   html(
@@ -252,7 +248,7 @@ export async function handlePage(request: Request, env: Env, id: string): Promis
   const entity = await env.DB.prepare("SELECT id, title, summary FROM entities WHERE id = ?")
     .bind(id)
     .first<EntityRow>();
-  if (!entity) return notFoundPage();
+  if (!entity) return notFoundResponse();
   const parsed = parseViewState(new URL(request.url).searchParams);
   if (!parsed.ok) return badViewPage();
   const now = new Date();

@@ -1,6 +1,7 @@
 import { handleApi } from "./api";
 import { handleHome } from "./home";
 import { handlePage } from "./page";
+import { handleAbout, handleRobots, handleSitemap, notFoundResponse } from "./site-pages";
 
 export interface Env {
   DB: D1Database;
@@ -26,6 +27,9 @@ export default {
     if (url.pathname === "/") {
       return handleHome(request, env);
     }
+    if (url.pathname === "/robots.txt") return handleRobots(request);
+    if (url.pathname === "/sitemap.xml") return handleSitemap(request, env);
+    if (url.pathname === "/about") return handleAbout(request);
 
     const page = /^\/p\/([^/]+)\/?$/.exec(url.pathname);
     if (page) {
@@ -33,11 +37,11 @@ export default {
       try {
         id = decodeURIComponent(page[1]);
       } catch {
-        return Response.json({ error: "not_found" }, { status: 404 });
+        return notFoundResponse();
       }
       return handlePage(request, env, id);
     }
 
-    return Response.json({ error: "not_found" }, { status: 404 });
+    return notFoundResponse();
   },
 } satisfies ExportedHandler<Env>;

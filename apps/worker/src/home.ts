@@ -4,6 +4,7 @@
 import type { Env } from "./index";
 import { escapeHtml } from "./page";
 import { PAGE_CSS } from "./page-css";
+import { SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 export interface HomeEntityRow {
   id: string;
@@ -80,7 +81,7 @@ export function renderHomePage(entities: HomeEntityRow[], pageUrl: string): stri
 <meta property="og:description" content="${description}">
 <meta property="og:url" content="${url}">
 <meta name="twitter:card" content="summary">
-<style>${PAGE_CSS}${HOME_CSS}</style>
+<style>${PAGE_CSS}${SITE_CSS}${HOME_CSS}</style>
 </head>
 <body>
 <main class="app-shell">
@@ -101,6 +102,7 @@ ${renderList(entities)}
 </div>
 </div>
 </section>
+${SITE_FOOTER}
 </main>
 </body>
 </html>`;
