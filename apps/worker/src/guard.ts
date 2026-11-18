@@ -1,6 +1,6 @@
 // 匿名の書き込み（投稿・投票）の荒らし対策（Q-007）。
 // 1) 接続元 IP ごとの流量制限（D1 の固定窓カウンタ。migrations/0003）
-// 2) Cloudflare Turnstile の検証（トークンは X-Turnstile-Token ヘッダーで受ける）
+// 2) Cloudflare Turnstile の検証（API はトークンを X-Turnstile-Token ヘッダーで、フォームは項目 cf-turnstile-response で受ける）
 // 流量を先に数えるので、検証に落ちた試行も上限に数える（siteverify を連打させない）。
 // IP は生のまま保存しない。秘密鍵 IP_HASH_KEY の HMAC-SHA256 に置き換えてから数え・票に残す（D-010）。
 // 同じ IP の試行を突き合わせる値であり、同一人物を識別するものではない。
@@ -80,26 +80,49 @@ export async function verifyTurnstile(secret: string, token: string, ip: string 
   }
 }
 
-/** 書き込みを通してよければ null、拒否するならその応答を返す。 */
-export async function guardWrite(request: Request, env: Env, kind: WriteKind): Promise<Response | null> {
+/** 書き込みを拒否する理由。API は JSON で、フォームは同じページの HTML で返す（Q-013）。 */
+export interface WriteRejection {
+  status: 403 | 429 | 503;
+  error: "ip_hash_not_configured" | "rate_limited" | "turnstile_not_configured" | "turnstile_failed";
+  /** 429 の時だけ。次の窓までの秒数。 */
+  retryAfter?: number;
+}
+
+/**
+ * 流量制限と Turnstile の検証。通してよければ null。
+ * token はトークンの値そのもの（API は X-Turnstile-Token ヘッダー、フォームは項目 cf-turnstile-response から渡す）。
+ */
+export async function checkWrite(
+  request: Request,
+  env: Env,
+  kind: WriteKind,
+  token: string | null,
+): Promise<WriteRejection | null> {
   const ip = request.headers.get("CF-Connecting-IP");
 
   // ハッシュの鍵が無ければ数えられないので、流量より先に止める（生の IP を保存しないため）。
   const hashKey = env.IP_HASH_KEY;
-  if (!hashKey) return Response.json({ error: "ip_hash_not_configured" }, { status: 503 });
+  if (!hashKey) return { status: 503, error: "ip_hash_not_configured" };
 
   const retryAfter = await countAttempt(env.DB, await hashIp(hashKey, ip ?? UNKNOWN_IP), kind, new Date());
-  if (retryAfter !== null) {
-    return Response.json({ error: "rate_limited" }, { status: 429, headers: { "Retry-After": String(retryAfter) } });
-  }
+  if (retryAfter !== null) return { status: 429, error: "rate_limited", retryAfter };
 
   // 鍵が無い時は書き込みを止める（設定漏れのまま公開しても荒らしに開かないように）。
   const secret = env.TURNSTILE_SECRET_KEY;
-  if (!secret) return Response.json({ error: "turnstile_not_configured" }, { status: 503 });
+  if (!secret) return { status: 503, error: "turnstile_not_configured" };
 
-  const token = request.headers.get(TURNSTILE_HEADER)?.trim() ?? "";
-  if (token === "" || !(await verifyTurnstile(secret, token, ip))) {
-    return Response.json({ error: "turnstile_failed" }, { status: 403 });
+  const value = token?.trim() ?? "";
+  if (value === "" || !(await verifyTurnstile(secret, value, ip))) {
+    return { status: 403, error: "turnstile_failed" };
   }
   return null;
+}
+
+/** 書き込みを通してよければ null、拒否するならその応答（JSON）を返す。トークンは X-Turnstile-Token ヘッダー。 */
+export async function guardWrite(request: Request, env: Env, kind: WriteKind): Promise<Response | null> {
+  const rejected = await checkWrite(request, env, kind, request.headers.get(TURNSTILE_HEADER));
+  if (rejected === null) return null;
+  const headers: Record<string, string> =
+    rejected.retryAfter === undefined ? {} : { "Retry-After": String(rejected.retryAfter) };
+  return Response.json({ error: rejected.error }, { status: rejected.status, headers });
 }

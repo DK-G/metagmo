@@ -5,6 +5,11 @@
   // テストが起動する最新の日付（2026-10-11 実測。2026-10-11 は同梱の workerd が未対応で起動しない）。上げる時は npm test で確かめる。
   "compatibility_date": "2026-10-10",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    // Turnstile のサイトキー（秘密でない）。今の値は Cloudflare が公開しているテスト用キー（いつも通る）。
+    // 公開前に本番のサイトキーへ差し替える（手順は Q-019 の docs/RELEASE.md）。秘密鍵は `wrangler secret put` で別に入れる。
+    "TURNSTILE_SITE_KEY": "1x00000000000000000000AA"
+  },
   "d1_databases": [
     {
       "binding": "DB",

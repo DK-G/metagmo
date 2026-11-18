@@ -145,12 +145,11 @@ async function listTags(env: Env, entityId: string, params: URLSearchParams) {
   return json({ tags: await listTagsByView(env.DB, entityId, parsed.view, new Date(), search) });
 }
 
-async function createTag(request: Request, env: Env, entityId: string) {
-  if (!(await entityExists(env, entityId))) return notFound();
-  const body = await readBody(request);
-  const tagText = requiredText(body, "tag_text", LIMITS.tagText);
-
-  // 同じページに同じ文言のタグが既にあれば、増やさずにそれを返す（票が割れないように）。
+/**
+ * タグを入れる。同じページに同じ文言のタグが既にあれば、増やさずにその id を返す（票が割れないように）。
+ * API（createTag）とフォーム（forms.ts）で共有する。ページがあることは呼ぶ側で確かめる。
+ */
+export async function insertTag(env: Env, entityId: string, tagText: string): Promise<{ id: string; created: boolean }> {
   // 先に探してから入れると、同時に 2 件来た時に両方が「まだ無い」を見て 2 行できる。
   // そこでまず入れ、表の一意制約（migrations/0002）で弾かれたら既にある行を返す。
   // batch は 1 つの transaction なので、弾かれた時は履歴の行も残らない。
@@ -166,9 +165,17 @@ async function createTag(request: Request, env: Env, entityId: string) {
       .bind(entityId, tagText)
       .first<{ id: string }>();
     if (!existing) throw error;
-    return json({ tag: await tagById(env, existing.id), created: false });
+    return { id: existing.id, created: false };
   }
-  return json({ tag: await tagById(env, id), created: true }, 201);
+  return { id, created: true };
+}
+
+async function createTag(request: Request, env: Env, entityId: string) {
+  if (!(await entityExists(env, entityId))) return notFound();
+  const body = await readBody(request);
+  const tagText = requiredText(body, "tag_text", LIMITS.tagText);
+  const { id, created } = await insertTag(env, entityId, tagText);
+  return created ? json({ tag: await tagById(env, id), created: true }, 201) : json({ tag: await tagById(env, id), created: false });
 }
 
 async function createVote(request: Request, env: Env, tagId: string) {
