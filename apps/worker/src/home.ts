@@ -8,6 +8,7 @@ import { escapeHtml } from "./page";
 import { PAGE_CSS } from "./page-css";
 import { parseSearch, searchEntities, type SearchOptions } from "./search";
 import { InputError } from "./validate";
+import { SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 export interface HomeEntityRow {
   id: string;
@@ -146,7 +147,7 @@ export function renderHomePage(entities: HomeEntityRow[], pageUrl: string, searc
 <meta property="og:description" content="${description}">
 <meta property="og:url" content="${url}">
 <meta name="twitter:card" content="summary">
-<style>${PAGE_CSS}${HOME_CSS}</style>
+<style>${PAGE_CSS}${SITE_CSS}${HOME_CSS}</style>
 </head>
 <body>
 <main class="app-shell">
@@ -168,6 +169,7 @@ ${renderList(entities, search)}
 </div>
 </div>
 </section>
+${SITE_FOOTER}
 </main>
 </body>
 </html>`;
