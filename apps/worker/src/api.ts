@@ -165,13 +165,11 @@ async function createTag(request: Request, env: Env, entityId: string) {
   return created ? json({ tag: await tagById(env, id), created: true }, 201) : json({ tag: await tagById(env, id), created: false });
 }
 
-async function createVote(request: Request, env: Env, tagId: string) {
-  const exists = await env.DB.prepare("SELECT 1 AS ok FROM tags WHERE id = ?").bind(tagId).first();
-  if (!exists) return notFound();
-  const body = await readBody(request);
-  const type = voteType(body, "vote_type");
-
-  // 匿名の票は同じタグへ何票でも入る（表の定義どおり）。IP は荒らし対策（Q-007）用に、HMAC にして残す（D-010）。
+/**
+ * 票を 1 つ入れる。API（createVote）とフォーム（form-routes.ts）で共有する。タグがあることと書き込みの検証は呼ぶ側で済ませる。
+ * 匿名の票は同じタグへ何票でも入る（表の定義どおり）。IP は荒らし対策（Q-007）用に、HMAC にして残す（D-010）。
+ */
+export async function insertVote(request: Request, env: Env, tagId: string, type: "up" | "down"): Promise<void> {
   const ipHash = await voterIpHash(request, env);
   const id = crypto.randomUUID();
   await env.DB.batch([
@@ -183,6 +181,14 @@ async function createVote(request: Request, env: Env, tagId: string) {
     ),
     historyRow(env, "vote", "tag", tagId, { vote_id: id, vote_type: type }),
   ]);
+}
+
+async function createVote(request: Request, env: Env, tagId: string) {
+  const exists = await env.DB.prepare("SELECT 1 AS ok FROM tags WHERE id = ?").bind(tagId).first();
+  if (!exists) return notFound();
+  const body = await readBody(request);
+  const type = voteType(body, "vote_type");
+  await insertVote(request, env, tagId, type);
   return json({ tag: await tagById(env, tagId) }, 201);
 }
 

@@ -40,6 +40,33 @@ export function tagInputMessage(reason: string): string {
   return "タグを入力してください。";
 }
 
+/** 票の種類が up・down 以外だった時の 1 行。 */
+export const VOTE_INPUT_MESSAGE = "賛成か反対のボタンを押して送ってください。";
+
+/**
+ * タグ 1 つの賛成・反対ボタン（Q-014）。フォームの外に置き、form 属性でタグのフォーム（id="tag-form"）を送る。
+ * こうすると Turnstile のウィジェットはページに 1 つで足りる（押したボタンの formaction が送り先を決める）。
+ * formnovalidate で、タグの入力欄が空でも送れる。query は押した時の視界（`?consensus=1` など。無ければ空）。
+ */
+export function renderVoteButtons(
+  entityId: string,
+  tag: { id: string; tag_text: string; up: number; down: number },
+  query: string,
+): string {
+  const action = esc(`/p/${encodeURIComponent(entityId)}/tags/${encodeURIComponent(tag.id)}/vote${query}`);
+  const name = esc(tag.tag_text);
+  const button = (type: "up" | "down", label: string, count: number) =>
+    `<button type="submit" form="tag-form" formaction="${action}" formnovalidate name="vote_type" value="${type}" aria-label="「${name}」に${label}（いま ${count} 票）">${type === "up" ? "👍" : "👎"} ${count}</button>`;
+  return `<div class="vote-buttons">${button("up", "賛成", tag.up)}${button("down", "反対", tag.down)}</div>`;
+}
+
+/** 投票の前に済ませることの 1 行。ウィジェットがある時だけ出す。 */
+export function voteHint(siteKey: string | undefined): string {
+  return siteKey
+    ? `<p class="vote-hint">👍・👎 を押す前に、下の「タグを追加」にあるロボットでないことの確認を済ませてください。</p>`
+    : "";
+}
+
 /** Turnstile のウィジェット。サイトキーが無ければ置かない（送っても 403 になる）。 */
 function turnstileWidget(siteKey: string | undefined): string {
   if (!siteKey) return "";
@@ -84,5 +111,14 @@ export const FORM_CSS = `
 
 .cf-turnstile {
   min-height: 65px;
+}
+
+.vote-hint {
+  margin: 0;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
 }
 `;
