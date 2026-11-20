@@ -3,6 +3,7 @@
 // 「全体との差」（Q-011）は <details> で開く追加の 1 枚。既定の表示はワードクラウドのまま。
 // 雲の上にページの輪郭（D-013、outline.ts）を 1 枚、その下に票の集まり方の帯（D-014、spread.ts）を 1 本置く。
 // タグを足すフォーム（Q-013）は write-forms.ts の部品を tag-list の下に置く。経路は form-routes.ts。
+// ファクトを足すフォーム（Q-015）も write-forms.ts の部品で、facts-list の下に置く。
 
 import type { Env } from "./index";
 import {
@@ -20,7 +21,7 @@ import { renderViewButtons } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 import { renderOutline } from "./outline";
 import { renderSpread } from "./spread";
-import { FORM_CSS, renderTagForm, type FormNotice } from "./write-forms";
+import { FORM_CSS, renderFactForm, renderTagForm, type FormNotice } from "./write-forms";
 import { notFoundResponse, SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 interface EntityRow {
@@ -174,6 +175,7 @@ export function renderEntityPage(
   diff: ViewDiff | null = null,
   allTags: ViewTag[] | null = null,
   tagForm = "",
+  factForm = "",
 ): string {
   const title = escapeHtml(entity.title);
   const summary = escapeHtml(entity.summary);
@@ -212,6 +214,7 @@ export function renderEntityPage(
 <div class="facts-list">
 ${renderFacts(facts)}
 </div>
+${factForm}
 </aside>
 <section class="tag-experience" aria-label="タグ視界">
 <div class="toolbar"><div><h2>Word Cloud</h2><p>ボタンを押すと、同じタグ群の見え方が変わります。語の大きさは票の総数（賛成 + 反対）、色は賛成寄りか反対寄りか、色の濃さは偏りの確かさです。票が割れているタグは大きく灰色に出ます。</p></div></div>
@@ -279,6 +282,8 @@ export async function pageResponse(
   const diff = allTags === null ? null : diffTagShares(allTags, tags, { standardize: shouldStandardizeDiff(parsed.view) });
   const path = `/p/${encodeURIComponent(id)}`;
   const pageUrl = new URL(path, request.url).toString();
-  const tagForm = renderTagForm(id, env.TURNSTILE_SITE_KEY, notice);
-  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff, allTags, tagForm), status);
+  const isFact = notice?.form === "fact";
+  const tagForm = renderTagForm(id, env.TURNSTILE_SITE_KEY, isFact ? null : notice);
+  const factForm = renderFactForm(id, env.TURNSTILE_SITE_KEY, isFact ? notice : null);
+  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff, allTags, tagForm, factForm), status);
 }
