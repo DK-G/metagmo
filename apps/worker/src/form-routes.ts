@@ -3,11 +3,14 @@
 // 成功は 303 で元のページへ戻し、失敗は理由を 1 行出した同じページを返す。
 
 import type { Env } from "./index";
-import { insertTag } from "./api";
+import { insertTag, insertVote } from "./api";
 import { checkWrite } from "./guard";
 import { pageResponse } from "./page";
-import { InputError, LIMITS, requiredText } from "./validate";
-import { rejectionMessage, tagInputMessage, TURNSTILE_FIELD } from "./write-forms";
+import { notFoundResponse } from "./site-pages";
+import { InputError, LIMITS, requiredText, voteType } from "./validate";
+import { viewQuery } from "./view-buttons";
+import { parseViewState } from "./views";
+import { rejectionMessage, tagInputMessage, TURNSTILE_FIELD, VOTE_INPUT_MESSAGE } from "./write-forms";
 
 /** フォームの項目を文字列だけの表にする。読めない本文は空の表（必須の項目で 400 になる）。 */
 async function readForm(request: Request): Promise<Record<string, string>> {
@@ -53,4 +56,40 @@ export async function handleTagForm(request: Request, env: Env, entityId: string
 
   await insertTag(env, entityId, tagText);
   return seeOther(`/p/${encodeURIComponent(entityId)}`);
+}
+
+/**
+ * `POST /p/:id/tags/:tagId/vote`（Q-014）。票を 1 つ入れ、押した時の視界の URL（`?consensus=1` など）へ 303 で戻す。
+ * 視界は送り先（ボタンの formaction）の URL の値で受ける。ボタンはタグのフォームの Turnstile を使う（write-forms.ts）。
+ */
+export async function handleVoteForm(request: Request, env: Env, entityId: string, tagId: string): Promise<Response> {
+  if (request.method !== "POST") {
+    return new Response("method not allowed", { status: 405, headers: { Allow: "POST" } });
+  }
+  // 別ページのタグ id は、ページが無いのと同じ 404（経路違いは守りより先に返す）。
+  const tag = await env.DB.prepare("SELECT 1 AS ok FROM tags WHERE id = ? AND entity_id = ?").bind(tagId, entityId).first();
+  if (!tag) return notFoundResponse();
+  // 視界の値が不正なら、ページと同じ 400 の HTML（票は入れない）。
+  const parsed = parseViewState(new URL(request.url).searchParams);
+  if (!parsed.ok) return pageResponse(request, env, entityId);
+
+  const form = await readForm(request);
+
+  const rejected = await checkWrite(request, env, "vote", form[TURNSTILE_FIELD] ?? null);
+  if (rejected) {
+    const res = await pageResponse(request, env, entityId, { message: rejectionMessage(rejected) }, rejected.status);
+    if (rejected.retryAfter !== undefined) res.headers.set("Retry-After", String(rejected.retryAfter));
+    return res;
+  }
+
+  let type: "up" | "down";
+  try {
+    type = voteType(form, "vote_type");
+  } catch (e) {
+    if (!(e instanceof InputError)) throw e;
+    return pageResponse(request, env, entityId, { message: VOTE_INPUT_MESSAGE }, 400);
+  }
+
+  await insertVote(request, env, tagId, type);
+  return seeOther(`/p/${encodeURIComponent(entityId)}${viewQuery(parsed.view)}`);
 }

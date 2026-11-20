@@ -3,6 +3,7 @@
 // 「全体との差」（Q-011）は <details> で開く追加の 1 枚。既定の表示はワードクラウドのまま。
 // 雲の上にページの輪郭（D-013、outline.ts）を 1 枚、その下に票の集まり方の帯（D-014、spread.ts）を 1 本置く。
 // タグを足すフォーム（Q-013）は write-forms.ts の部品を tag-list の下に置く。経路は form-routes.ts。
+// タグごとの賛成・反対ボタン（Q-014）も write-forms.ts の部品で、タグのフォームを form 属性で送る。
 
 import type { Env } from "./index";
 import {
@@ -16,11 +17,11 @@ import {
   type ViewState,
   type ViewTag,
 } from "./views";
-import { renderViewButtons } from "./view-buttons";
+import { renderViewButtons, viewQuery } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 import { renderOutline } from "./outline";
 import { renderSpread } from "./spread";
-import { FORM_CSS, renderTagForm, type FormNotice } from "./write-forms";
+import { FORM_CSS, renderTagForm, renderVoteButtons, voteHint, type FormNotice } from "./write-forms";
 import { notFoundResponse, SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 interface EntityRow {
@@ -97,12 +98,13 @@ function renderCloud(tags: ViewTag[]): string {
     .join("\n");
 }
 
-function renderTagList(tags: ViewTag[]): string {
+/** voteButtons があれば票数の代わりに賛成・反対ボタン（Q-014、write-forms.ts）を置く。 */
+function renderTagList(tags: ViewTag[], voteButtons: ((tag: ViewTag) => string) | null = null): string {
   return tags
     .map(
       (t) => `<article class="tag-row"><div><h3>${escapeHtml(t.tag_text)}</h3>
 <p>net ${t.score} / total ${t.up + t.down}</p></div>
-<div class="vote-counts"><span>👍 ${t.up}</span><span>👎 ${t.down}</span></div></article>`,
+${voteButtons ? voteButtons(t) : `<div class="vote-counts"><span>👍 ${t.up}</span><span>👎 ${t.down}</span></div>`}</article>`,
     )
     .join("\n");
 }
@@ -174,6 +176,8 @@ export function renderEntityPage(
   diff: ViewDiff | null = null,
   allTags: ViewTag[] | null = null,
   tagForm = "",
+  voteButtons: ((tag: ViewTag) => string) | null = null,
+  voteNote = "",
 ): string {
   const title = escapeHtml(entity.title);
   const summary = escapeHtml(entity.summary);
@@ -222,7 +226,7 @@ ${allTags === null ? renderSpread(tags, null) : renderSpread(allTags, tags)}
 ${renderCloud(tags)}
 </div>
 <div class="tag-list">
-${renderTagList(tags)}
+${tags.length > 0 ? voteNote : ""}${renderTagList(tags, voteButtons)}
 </div>
 ${tagForm}
 ${renderViewDiff(diff, shouldStandardizeDiff(view))}
@@ -280,5 +284,10 @@ export async function pageResponse(
   const path = `/p/${encodeURIComponent(id)}`;
   const pageUrl = new URL(path, request.url).toString();
   const tagForm = renderTagForm(id, env.TURNSTILE_SITE_KEY, notice);
-  return html(renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff, allTags, tagForm), status);
+  const query = viewQuery(parsed.view);
+  const voteButtons = (tag: ViewTag) => renderVoteButtons(id, tag, query);
+  return html(
+    renderEntityPage(entity, facts, tags, pageUrl, parsed.view, path, diff, allTags, tagForm, voteButtons, voteHint(env.TURNSTILE_SITE_KEY)),
+    status,
+  );
 }
