@@ -101,13 +101,17 @@ async function listFacts(env: Env, entityId: string) {
   return json({ facts: results });
 }
 
-async function createFact(request: Request, env: Env, entityId: string) {
-  if (!(await entityExists(env, entityId))) return notFound();
-  const body = await readBody(request);
-  const content = requiredText(body, "content", LIMITS.factContent);
-  const sourceUrl = requiredHttpUrl(body, "source_url", LIMITS.sourceUrl);
-  const sourceType = optionalText(body, "source_type", LIMITS.sourceType);
-
+/**
+ * ファクトを入れて id を返す。API（createFact）とフォーム（form-routes.ts）で共有する。
+ * 入力の検査とページがあることの確認は呼ぶ側で行う。
+ */
+export async function insertFact(
+  env: Env,
+  entityId: string,
+  content: string,
+  sourceUrl: string,
+  sourceType: string | null,
+): Promise<string> {
   const id = crypto.randomUUID();
   await env.DB.batch([
     env.DB.prepare("INSERT INTO facts (id, entity_id, content, source_url, source_type) VALUES (?, ?, ?, ?, ?)").bind(
@@ -119,6 +123,16 @@ async function createFact(request: Request, env: Env, entityId: string) {
     ),
     historyRow(env, "create", "fact", id, { entity_id: entityId, source_url: sourceUrl }),
   ]);
+  return id;
+}
+
+async function createFact(request: Request, env: Env, entityId: string) {
+  if (!(await entityExists(env, entityId))) return notFound();
+  const body = await readBody(request);
+  const content = requiredText(body, "content", LIMITS.factContent);
+  const sourceUrl = requiredHttpUrl(body, "source_url", LIMITS.sourceUrl);
+  const sourceType = optionalText(body, "source_type", LIMITS.sourceType);
+  const id = await insertFact(env, entityId, content, sourceUrl, sourceType);
   const fact = await env.DB.prepare(`SELECT ${FACT_COLUMNS} FROM facts WHERE id = ?`).bind(id).first();
   return json({ fact }, 201);
 }

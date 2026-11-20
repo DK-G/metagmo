@@ -152,7 +152,7 @@ describe("タグの賛成・反対ボタン（POST /p/:id/tags/:tagId/vote）", 
     expect(res.headers.get("Allow")).toBe("POST");
   });
 
-  it("/p/:id の各タグに、タグのフォームを送る賛成・反対ボタンがあり、ウィジェットは 1 つ", async () => {
+  it("/p/:id の各タグに、タグのフォームを送る賛成・反対ボタンがあり、ボタンはウィジェットを増やさない", async () => {
     const id = await newEntity("ボタンの有無");
     const t1 = await newTag(id, "一つ目");
     const t2 = await newTag(id, "二つ目");
@@ -166,7 +166,8 @@ describe("タグの賛成・反対ボタン（POST /p/:id/tags/:tagId/vote）", 
       expect(html).toContain(`form="tag-form" formaction="${action}" formnovalidate name="vote_type" value="up"`);
       expect(html).toContain(`form="tag-form" formaction="${action}" formnovalidate name="vote_type" value="down"`);
     }
-    expect(html.match(/class="cf-turnstile"/g)?.length).toBe(1);
+    // タグの数によらず、ウィジェットはタグのフォームとファクトのフォーム（Q-015）の 2 つだけ。
+    expect(html.match(/class="cf-turnstile"/g)?.length).toBe(2);
     expect(html).toContain('<form class="tag-form" id="tag-form"');
   });
 

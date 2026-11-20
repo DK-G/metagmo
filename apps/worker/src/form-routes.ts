@@ -3,14 +3,14 @@
 // 成功は 303 で元のページへ戻し、失敗は理由を 1 行出した同じページを返す。
 
 import type { Env } from "./index";
-import { insertTag, insertVote } from "./api";
+import { insertFact, insertTag, insertVote } from "./api";
 import { checkWrite } from "./guard";
 import { pageResponse } from "./page";
 import { notFoundResponse } from "./site-pages";
-import { InputError, LIMITS, requiredText, voteType } from "./validate";
+import { InputError, LIMITS, optionalText, requiredHttpUrl, requiredText, voteType } from "./validate";
 import { viewQuery } from "./view-buttons";
 import { parseViewState } from "./views";
-import { rejectionMessage, tagInputMessage, TURNSTILE_FIELD, VOTE_INPUT_MESSAGE } from "./write-forms";
+import { factInputMessage, rejectionMessage, tagInputMessage, TURNSTILE_FIELD, VOTE_INPUT_MESSAGE } from "./write-forms";
 
 /** フォームの項目を文字列だけの表にする。読めない本文は空の表（必須の項目で 400 になる）。 */
 async function readForm(request: Request): Promise<Record<string, string>> {
@@ -92,4 +92,47 @@ export async function handleVoteForm(request: Request, env: Env, entityId: strin
 
   await insertVote(request, env, tagId, type);
   return seeOther(`/p/${encodeURIComponent(entityId)}${viewQuery(parsed.view)}`);
+}
+
+/**
+ * `POST /p/:id/facts`（Q-015）。ファクトを 1 つ足して `/p/:id` へ戻す。出典 URL は必須で http(s) だけ（API と同じ検査）。
+ * 失敗は理由の 1 行と入力値をファクトのフォームの位置に出す。
+ */
+export async function handleFactForm(request: Request, env: Env, entityId: string): Promise<Response> {
+  if (request.method !== "POST") {
+    return new Response("method not allowed", { status: 405, headers: { Allow: "POST" } });
+  }
+  const exists = await env.DB.prepare("SELECT 1 AS ok FROM entities WHERE id = ?").bind(entityId).first();
+  if (!exists) return pageResponse(request, env, entityId);
+
+  const form = await readForm(request);
+  const fields = {
+    content: form.content ?? "",
+    source_url: form.source_url ?? "",
+    source_type: form.source_type ?? "",
+  };
+
+  const rejected = await checkWrite(request, env, "post", form[TURNSTILE_FIELD] ?? null);
+  if (rejected) {
+    const notice = { form: "fact" as const, message: rejectionMessage(rejected), fields };
+    const res = await pageResponse(request, env, entityId, notice, rejected.status);
+    if (rejected.retryAfter !== undefined) res.headers.set("Retry-After", String(rejected.retryAfter));
+    return res;
+  }
+
+  let content: string;
+  let sourceUrl: string;
+  let sourceType: string | null;
+  try {
+    content = requiredText(form, "content", LIMITS.factContent);
+    sourceUrl = requiredHttpUrl(form, "source_url", LIMITS.sourceUrl);
+    sourceType = optionalText(form, "source_type", LIMITS.sourceType);
+  } catch (e) {
+    if (!(e instanceof InputError)) throw e;
+    const notice = { form: "fact" as const, message: factInputMessage(e.field, e.reason), fields };
+    return pageResponse(request, env, entityId, notice, 400);
+  }
+
+  await insertFact(env, entityId, content, sourceUrl, sourceType);
+  return seeOther(`/p/${encodeURIComponent(entityId)}`);
 }

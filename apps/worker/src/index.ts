@@ -1,6 +1,6 @@
 import { handleApi } from "./api";
 import { handleHome } from "./home";
-import { handleTagForm, handleVoteForm } from "./form-routes";
+import { handleFactForm, handleTagForm, handleVoteForm } from "./form-routes";
 import { handlePage } from "./page";
 import { handleAbout, handleRobots, handleSitemap, notFoundResponse } from "./site-pages";
 
@@ -64,6 +64,12 @@ export default {
       const id = safeDecode(voteForm[1]);
       const tagId = safeDecode(voteForm[2]);
       return id === null || tagId === null ? notFoundResponse() : handleVoteForm(request, env, id, tagId);
+    }
+
+    const factForm = /^\/p\/([^/]+)\/facts\/?$/.exec(url.pathname);
+    if (factForm) {
+      const id = safeDecode(factForm[1]);
+      return id === null ? notFoundResponse() : handleFactForm(request, env, id);
     }
 
     return notFoundResponse();
