@@ -11,7 +11,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ESCAPES[c]);
 /** フォームの項目名。Turnstile のウィジェットが入れる名前に合わせる。 */
 export const TURNSTILE_FIELD = "cf-turnstile-response";
 
-const TURNSTILE_SCRIPT = `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`;
+export const TURNSTILE_SCRIPT = `<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>`;
 
 /**
  * 送った後に同じページで出す 1 行と、入力欄に戻す値。
@@ -73,7 +73,7 @@ export function voteHint(siteKey: string | undefined): string {
 }
 
 /** Turnstile のウィジェット。サイトキーが無ければ置かない（送っても 403 になる）。 */
-function turnstileWidget(siteKey: string | undefined): string {
+export function turnstileWidget(siteKey: string | undefined): string {
   if (!siteKey) return "";
   return `<div class="cf-turnstile" data-sitekey="${esc(siteKey)}" data-language="ja"></div>`;
 }

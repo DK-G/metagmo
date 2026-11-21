@@ -23,7 +23,7 @@ import { PAGE_CSS } from "./page-css";
 import { renderOutline } from "./outline";
 import { renderSpread } from "./spread";
 import { FORM_CSS, renderFactForm, renderTagForm, renderVoteButtons, voteHint, type FormNotice } from "./write-forms";
-import { notFoundResponse, SITE_CSS, SITE_FOOTER } from "./site-pages";
+import { NEW_PAGE_LINK, notFoundResponse, SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 interface EntityRow {
   id: string;
@@ -204,6 +204,7 @@ export function renderEntityPage(
 <main class="app-shell">
 <header class="topbar">
 <a class="brand" href="/" aria-label="メタグモ ホーム"><span class="brand-mark">M</span><span>メタグモ</span></a>
+${NEW_PAGE_LINK}
 </header>
 <section class="entity-hero" id="top">
 <div><h1>${title}</h1><p>${summary}</p></div>

@@ -72,16 +72,22 @@ async function listEntities(env: Env, params: URLSearchParams) {
   return json({ entities: await searchEntities(env.DB, parseSearch(params, "newest"), LIST_LIMIT) });
 }
 
-async function createEntity(request: Request, env: Env) {
-  const body = await readBody(request);
-  const title = requiredText(body, "title", LIMITS.title);
-  const summary = requiredText(body, "summary", LIMITS.summary);
-
+/** ページを 1 つ作って id を返す。検証済みの値を受ける（API とページを作る画面 new-page.ts で共有）。 */
+export async function insertEntity(env: Env, title: string, summary: string): Promise<string> {
   const id = crypto.randomUUID();
   await env.DB.batch([
     env.DB.prepare("INSERT INTO entities (id, title, summary) VALUES (?, ?, ?)").bind(id, title, summary),
     historyRow(env, "create", "entity", id, { title }),
   ]);
+  return id;
+}
+
+async function createEntity(request: Request, env: Env) {
+  const body = await readBody(request);
+  const title = requiredText(body, "title", LIMITS.title);
+  const summary = requiredText(body, "summary", LIMITS.summary);
+
+  const id = await insertEntity(env, title, summary);
   const entity = await env.DB.prepare(`SELECT ${ENTITY_COLUMNS} FROM entities WHERE id = ?`).bind(id).first();
   return json({ entity }, 201);
 }

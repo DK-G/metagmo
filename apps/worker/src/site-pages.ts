@@ -20,6 +20,20 @@ export const SITE_CSS = `
   font-size: 14px;
 }
 
+.new-page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: white;
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .site-footer a {
   color: var(--muted);
 }
@@ -50,11 +64,15 @@ export const SITE_CSS = `
 }
 `;
 
+/** トップバーの右に置く「ページを作る」へのリンク（Q-016）。トップ・`/p/:id`・脇のページで共通。 */
+export const NEW_PAGE_LINK = `<a class="new-page-link" href="/new">＋ ページを作る</a>`;
+
 /** 全ページの末尾に置くフッター。 */
 export const SITE_FOOTER = `<footer class="site-footer"><a href="/">トップ</a><a href="/about">メタグモについて</a></footer>`;
 
 const TOPBAR = `<header class="topbar">
 <a class="brand" href="/" aria-label="メタグモ ホーム"><span class="brand-mark">M</span><span>メタグモ</span></a>
+${NEW_PAGE_LINK}
 </header>`;
 
 function shell(opts: { title: string; heading: string; lead: string; body: string; canonical?: string; noindex?: boolean }): string {
