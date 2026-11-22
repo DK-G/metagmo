@@ -1,5 +1,5 @@
-// 視界 3 ボタン（直近一週間・合意・論争）の集計。条件は metagmo_spec.md 2.1 の表どおり。
-// 各ボタンは 0 = 未押し / 1 = 1 回目 / 2 = 2 回目。押されたボタンどうしは「かつ」で重ねる。
+// 視界ボタン（直近一週間・合意・論争・BOT の票）の集計。最初の 3 つの条件は metagmo_spec.md 2.1 の表どおり。
+// 各ボタンは 0 = 未押し / 1 = 1 回目 / 2 = 2 回目（BOT の票は 0 / 1 だけ）。押されたボタンどうしは「かつ」で重ねる。
 
 import type { SearchOptions } from "./search";
 
@@ -9,27 +9,41 @@ export interface ViewState {
   recent: ViewMode;
   consensus: ViewMode;
   controversy: ViewMode;
+  /** 1 なら透明 BOT の票（votes.is_bot = 1）を数えない（D-015）。2 回目は無い。 */
+  nobot: 0 | 1;
 }
 
-export const DEFAULT_VIEW: ViewState = { recent: 0, consensus: 0, controversy: 0 };
+export const DEFAULT_VIEW: ViewState = { recent: 0, consensus: 0, controversy: 0, nobot: 0 };
+
+/** 全部未押し（＝全体の見え方）か。 */
+export const isDefaultView = (view: ViewState) =>
+  view.recent === 0 && view.consensus === 0 && view.controversy === 0 && view.nobot === 0;
 
 /** 合意・論争の判定に要る最少の票数（up + down）。 */
 export const MIN_VOTES = 3;
 /** 「直近一週間」の幅。 */
 export const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-const VIEW_KEYS = ["recent", "consensus", "controversy"] as const;
+const VIEW_KEYS = ["recent", "consensus", "controversy", "nobot"] as const;
+/** 項目ごとに受ける値。nobot は 0・1 だけ。 */
+const ALLOWED: Record<(typeof VIEW_KEYS)[number], readonly string[]> = {
+  recent: ["0", "1", "2"],
+  consensus: ["0", "1", "2"],
+  controversy: ["0", "1", "2"],
+  nobot: ["0", "1"],
+};
 
 export type ParsedView = { ok: true; view: ViewState } | { ok: false; field: (typeof VIEW_KEYS)[number] };
 
-/** `?recent=1&consensus=2` の形を読む。無い項目は未押し。0・1・2 以外は不正。 */
+/** `?recent=1&consensus=2&nobot=1` の形を読む。無い項目は未押し。0・1・2（nobot は 0・1）以外は不正。 */
 export function parseViewState(params: URLSearchParams): ParsedView {
   const view: ViewState = { ...DEFAULT_VIEW };
   for (const key of VIEW_KEYS) {
     const raw = params.get(key);
     if (raw === null) continue;
-    if (raw !== "0" && raw !== "1" && raw !== "2") return { ok: false, field: key };
-    view[key] = Number(raw) as ViewMode;
+    if (!ALLOWED[key].includes(raw)) return { ok: false, field: key };
+    if (key === "nobot") view.nobot = Number(raw) as 0 | 1;
+    else view[key] = Number(raw) as ViewMode;
   }
   return { ok: true, view };
 }
@@ -71,6 +85,7 @@ type TagRow = Omit<ViewTag, "score">;
  * 既定はネットスコア（up - down）の大きい順、同点は新しい順。newest は作成時刻順。
  * 「直近一週間」（1 回目・2 回目）は数える票を絞り、その期間に票の無いタグは返さない。
  * 未押しでは票の無いタグも返す。
+ * 「BOT の票」を押すと（nobot = 1）、BOT の印の付いた票を数えない。他の視界と同じく票を絞るだけで、タグは消さない。
  */
 export async function listTagsByView(
   db: D1Database,
@@ -89,7 +104,7 @@ export async function listTagsByView(
       `SELECT t.id, t.entity_id, t.tag_text, t.created_at,
               COALESCE(SUM(v.vote_type = 'up'), 0) AS up,
               COALESCE(SUM(v.vote_type = 'down'), 0) AS down
-       FROM tags t LEFT JOIN votes v ON v.tag_id = t.id ${window}
+       FROM tags t LEFT JOIN votes v ON v.tag_id = t.id ${window}${view.nobot === 1 ? " AND v.is_bot = 0" : ""}
        WHERE t.entity_id = ?2 AND instr(lower(t.tag_text), lower(?3)) > 0
        GROUP BY t.id
        ORDER BY ${search.sort === "score_desc" ? "(up - down) DESC," : ""} t.created_at DESC, t.id`,
