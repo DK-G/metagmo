@@ -65,6 +65,23 @@ export function renderVoteButtons(
   return `<div class="vote-buttons">${button("up", "賛成", tag.up)}${button("down", "反対", tag.down)}</div>`;
 }
 
+/** 通報の対象の値が読めなかった時の 1 行（Q-021）。 */
+export const REPORT_INPUT_MESSAGE = "通報する対象が分かりませんでした。タグかファクトの「通報」ボタンから送ってください。";
+
+/** 通報を受けた後、`/p/:id?reported=1` の上に出す 1 行（Q-021）。 */
+export const REPORT_DONE_NOTE = `<p class="form-done" role="status">通報を受け付けました。別々の接続元から 3 件集まると、確かめるまで隠れます。</p>`;
+
+/**
+ * タグかファクト 1 つの「通報」ボタン（Q-021）。投票と同じく form 属性でフォームを送り、Turnstile を借りる。
+ * タグはタグのフォーム（id="tag-form"）、ファクトはファクトのフォーム（id="fact-form"）。formnovalidate で入力欄が空でも送れる。
+ */
+export function renderReportButton(entityId: string, type: "tag" | "fact", id: string, label: string): string {
+  const action = esc(`/p/${encodeURIComponent(entityId)}/report`);
+  const form = type === "tag" ? "tag-form" : "fact-form";
+  const what = type === "tag" ? "タグ" : "ファクト";
+  return `<button type="submit" class="report-button" form="${form}" formaction="${action}" formnovalidate name="target" value="${esc(`${type}:${id}`)}" aria-label="${what}「${esc(label)}」を通報する" title="不適切な${what}を通報する（3 件で隠れます）">通報</button>`;
+}
+
 /** 投票の前に済ませることの 1 行。ウィジェットがある時だけ出す。 */
 export function voteHint(siteKey: string | undefined): string {
   return siteKey
@@ -178,6 +195,36 @@ export const FORM_CSS = `
   border-radius: 8px;
   background: #fbfcfa;
   color: var(--ink);
+}
+
+.form-done {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tag-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.report-button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.fact-item .report-button {
+  margin-left: 12px;
+  padding: 0;
 }
 
 .form-note {

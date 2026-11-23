@@ -1,4 +1,5 @@
 import { InputError, LIMITS } from "./validate";
+import { notHidden } from "./reports";
 
 export interface SearchOptions {
   q: string;
@@ -32,10 +33,10 @@ export async function searchEntities(db: D1Database, { q, sort }: SearchOptions,
     .prepare(
       `SELECT e.id, e.title, e.summary, e.created_at, e.updated_at,
        (SELECT COALESCE(SUM(CASE v.vote_type WHEN 'up' THEN 1 ELSE -1 END), 0)
-        FROM tags t JOIN votes v ON v.tag_id = t.id WHERE t.entity_id = e.id) AS score
+        FROM tags t JOIN votes v ON v.tag_id = t.id WHERE t.entity_id = e.id AND ${notHidden("tag", "t.id")}) AS score
      FROM entities e
      WHERE ?1 = '' OR instr(lower(e.title), lower(?1)) > 0
-       OR EXISTS (SELECT 1 FROM tags t WHERE t.entity_id = e.id AND instr(lower(t.tag_text), lower(?1)) > 0)
+       OR EXISTS (SELECT 1 FROM tags t WHERE t.entity_id = e.id AND instr(lower(t.tag_text), lower(?1)) > 0 AND ${notHidden("tag", "t.id")})
      ORDER BY ${order} LIMIT ?2`,
     )
     .bind(q, limit)
