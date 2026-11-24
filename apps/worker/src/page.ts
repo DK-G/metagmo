@@ -5,6 +5,7 @@
 // タグを足すフォーム（Q-013）は write-forms.ts の部品を tag-list の下に置く。経路は form-routes.ts。
 // タグごとの賛成・反対ボタン（Q-014）も write-forms.ts の部品で、タグのフォームを form 属性で送る。
 // ファクトを足すフォーム（Q-015）も write-forms.ts の部品で、facts-list の下に置く。
+// 通報（Q-021）で 3 件集まったタグ・ファクトは出さない（reports.ts の notHidden。タグは views.ts の集計で外れる）。
 
 import type { Env } from "./index";
 import {
@@ -23,7 +24,17 @@ import { renderViewButtons, viewQuery } from "./view-buttons";
 import { PAGE_CSS } from "./page-css";
 import { renderOutline } from "./outline";
 import { renderSpread } from "./spread";
-import { FORM_CSS, renderFactForm, renderTagForm, renderVoteButtons, voteHint, type FormNotice } from "./write-forms";
+import {
+  FORM_CSS,
+  renderFactForm,
+  renderReportButton,
+  renderTagForm,
+  renderVoteButtons,
+  REPORT_DONE_NOTE,
+  voteHint,
+  type FormNotice,
+} from "./write-forms";
+import { notHidden } from "./reports";
 import { NEW_PAGE_LINK, notFoundResponse, SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 interface EntityRow {
@@ -63,7 +74,7 @@ export function certainty(up: number, down: number): number {
 async function visibleFacts(env: Env, entityId: string): Promise<FactRow[]> {
   const { results } = await env.DB.prepare(
     `SELECT id, content, source_url, source_type, created_at FROM facts
-     WHERE entity_id = ? AND status != 'rejected' ORDER BY created_at, id`,
+     WHERE entity_id = ? AND status != 'rejected' AND ${notHidden("fact", "facts.id")} ORDER BY created_at, id`,
   )
     .bind(entityId)
     .all<FactRow>();
@@ -78,13 +89,14 @@ const formatDate = (iso: string) => {
   return Number.isNaN(d.getTime()) ? "" : `${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
 };
 
-function renderFacts(facts: FactRow[]): string {
+/** reportButton があれば出典の横に「通報」ボタン（Q-021）を置く。 */
+function renderFacts(facts: FactRow[], reportButton: ((fact: FactRow) => string) | null = null): string {
   if (facts.length === 0) return `<div class="empty-state">ファクトはまだありません。</div>`;
   return facts
     .map((f) => {
       const kind = f.source_type ? `${escapeHtml(f.source_type)} / ` : "";
       return `<article class="fact-item"><p>${escapeHtml(f.content)}</p>
-<a href="${safeHref(f.source_url)}" target="_blank" rel="noreferrer nofollow">出典 / ${kind}${formatDate(f.created_at)}</a></article>`;
+<a href="${safeHref(f.source_url)}" target="_blank" rel="noreferrer nofollow">出典 / ${kind}${formatDate(f.created_at)}</a>${reportButton ? reportButton(f) : ""}</article>`;
     })
     .join("\n");
 }
@@ -180,6 +192,8 @@ export function renderEntityPage(
   voteButtons: ((tag: ViewTag) => string) | null = null,
   voteNote = "",
   factForm = "",
+  factReportButton: ((fact: FactRow) => string) | null = null,
+  statusNote = "",
 ): string {
   const title = escapeHtml(entity.title);
   const summary = escapeHtml(entity.summary);
@@ -213,11 +227,11 @@ ${NEW_PAGE_LINK}
 <div><strong>${tags.length}</strong><span>Tags</span></div>
 </div>
 </section>
-<section class="content-grid">
+${statusNote}<section class="content-grid">
 <aside class="facts-panel">
 <div class="section-title"><h2>Facts</h2><p>先に事実を置き、印象はタグで分けます。</p></div>
 <div class="facts-list">
-${renderFacts(facts)}
+${renderFacts(facts, factReportButton)}
 </div>
 ${factForm}
 </aside>
@@ -291,11 +305,14 @@ export async function pageResponse(
   const tagForm = renderTagForm(id, env.TURNSTILE_SITE_KEY, isFact ? null : notice);
   const factForm = renderFactForm(id, env.TURNSTILE_SITE_KEY, isFact ? notice : null);
   const query = viewQuery(parsed.view);
-  const voteButtons = (tag: ViewTag) => renderVoteButtons(id, tag, query);
+  const voteButtons = (tag: ViewTag) =>
+    `<div class="tag-actions">${renderVoteButtons(id, tag, query)}${renderReportButton(id, "tag", tag.id, tag.tag_text)}</div>`;
+  const factReportButton = (fact: FactRow) => renderReportButton(id, "fact", fact.id, fact.content.slice(0, 40));
+  const reported = new URL(request.url).searchParams.get("reported") === "1" && notice === null ? REPORT_DONE_NOTE : "";
   return html(
     renderEntityPage(
       entity, facts, tags, pageUrl, parsed.view, path, diff, allTags, tagForm,
-      voteButtons, voteHint(env.TURNSTILE_SITE_KEY), factForm,
+      voteButtons, voteHint(env.TURNSTILE_SITE_KEY), factForm, factReportButton, reported,
     ),
     status,
   );

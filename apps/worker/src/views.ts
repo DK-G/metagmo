@@ -2,6 +2,7 @@
 // 各ボタンは 0 = 未押し / 1 = 1 回目 / 2 = 2 回目（BOT の票は 0 / 1 だけ）。押されたボタンどうしは「かつ」で重ねる。
 
 import type { SearchOptions } from "./search";
+import { notHidden } from "./reports";
 
 export type ViewMode = 0 | 1 | 2;
 
@@ -105,7 +106,7 @@ export async function listTagsByView(
               COALESCE(SUM(v.vote_type = 'up'), 0) AS up,
               COALESCE(SUM(v.vote_type = 'down'), 0) AS down
        FROM tags t LEFT JOIN votes v ON v.tag_id = t.id ${window}${view.nobot === 1 ? " AND v.is_bot = 0" : ""}
-       WHERE t.entity_id = ?2 AND instr(lower(t.tag_text), lower(?3)) > 0
+       WHERE t.entity_id = ?2 AND instr(lower(t.tag_text), lower(?3)) > 0 AND ${notHidden("tag", "t.id")}
        GROUP BY t.id
        ORDER BY ${search.sort === "score_desc" ? "(up - down) DESC," : ""} t.created_at DESC, t.id`,
     )

@@ -45,6 +45,31 @@
 - 公開時: `wrangler secret put TURNSTILE_SECRET_KEY` と `wrangler secret put IP_HASH_KEY`（Turnstile とは別の乱数）で鍵を入れます（鍵はリポジトリに置かない）。開発用の鍵も `D:/secrets/metagmo/` に保管し、`D:/dev` 内へ秘密値を保存しません。通常のテストは `vitest.config.ts` の公開テスト用 binding を使用し、本番の鍵を読みません。
 - テストは外へ通信しません（`vitest.config.ts` の `outboundService` が siteverify の代役をします）。
 
+## 通報で隠れたものを戻す・消す（Q-021・D-016）
+
+- タグとファクトには「通報」ボタンがあり、`POST /p/:id/report` へ送ります（タグ・ファクトのフォームと同じ Turnstile と流量制限。投稿の枠に数えます）。
+- 通報は `reports` 表（`migrations/0005`）に、対象の種別・id・接続元 IP の鍵つきハッシュ・日時で入ります。同じ接続元の同じ対象への通報は 1 件に数えます。
+- 戻していない通報が 3 件集まると、その対象は `/p/:id`・視界の集計（輪郭・帯・全体との差を含む）・検索から隠れます。**行は消えません。**
+- 確かめて戻す・消すための画面はまだありません（次の的）。それまでは手元から SQL で行います。本番では `--local` を `--remote` に替えます（本番の操作は人が同席して行う）。
+
+隠れているものの一覧:
+
+```
+npx wrangler d1 execute metagmo --local --command "SELECT target_type, target_id, COUNT(*) AS n FROM reports WHERE cleared_at IS NULL GROUP BY target_type, target_id HAVING n >= 3"
+```
+
+戻す（通報を「確かめ済み」にする。戻した後、同じ接続元はもう一度通報できません）:
+
+```
+npx wrangler d1 execute metagmo --local --command "UPDATE reports SET cleared_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE target_type = 'tag' AND target_id = '<id>'"
+```
+
+消す（タグなら票も一緒に消えます）:
+
+```
+npx wrangler d1 execute metagmo --local --command "DELETE FROM tags WHERE id = '<id>'"
+```
+
 ## 進め方
 - プロジェクトの全体像と目的は `GEMINI.md` を参照してください。
 - 長期計画は `RoadMap.md`、日々の作業は `task.md` にて管理します。

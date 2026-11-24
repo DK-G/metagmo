@@ -6,11 +6,12 @@ import type { Env } from "./index";
 import { insertFact, insertTag, insertVote } from "./api";
 import { checkWrite } from "./guard";
 import { pageResponse } from "./page";
+import { insertReport, parseReportTarget, targetOnPage } from "./reports";
 import { notFoundResponse } from "./site-pages";
 import { InputError, LIMITS, optionalText, requiredHttpUrl, requiredText, voteType } from "./validate";
 import { viewQuery } from "./view-buttons";
 import { parseViewState } from "./views";
-import { factInputMessage, rejectionMessage, tagInputMessage, TURNSTILE_FIELD, VOTE_INPUT_MESSAGE } from "./write-forms";
+import { factInputMessage, rejectionMessage, REPORT_INPUT_MESSAGE, tagInputMessage, TURNSTILE_FIELD, VOTE_INPUT_MESSAGE } from "./write-forms";
 
 /** フォームの項目を文字列だけの表にする。読めない本文は空の表（必須の項目で 400 になる）。 */
 async function readForm(request: Request): Promise<Record<string, string>> {
@@ -135,4 +136,34 @@ export async function handleFactForm(request: Request, env: Env, entityId: strin
 
   await insertFact(env, entityId, content, sourceUrl, sourceType);
   return seeOther(`/p/${encodeURIComponent(entityId)}`);
+}
+
+/**
+ * `POST /p/:id/report`（Q-021・D-016）。タグかファクトへの通報を 1 件入れ、`/p/:id?reported=1` へ 303 で戻す。
+ * 対象は項目 target の `tag:<id>`・`fact:<id>`。ボタンはタグかファクトのフォームの Turnstile を form 属性で使う（write-forms.ts）。
+ * 検証・流量はタグのフォームと同じ post 枠。通報が 3 件集まった対象は reports.ts の条件で隠れる。
+ */
+export async function handleReportForm(request: Request, env: Env, entityId: string): Promise<Response> {
+  if (request.method !== "POST") {
+    return new Response("method not allowed", { status: 405, headers: { Allow: "POST" } });
+  }
+  const exists = await env.DB.prepare("SELECT 1 AS ok FROM entities WHERE id = ?").bind(entityId).first();
+  if (!exists) return notFoundResponse();
+
+  const form = await readForm(request);
+  const target = parseReportTarget(form.target);
+  if (target === null) return pageResponse(request, env, entityId, { message: REPORT_INPUT_MESSAGE }, 400);
+  // 別ページのタグ・ファクトの id は、無いのと同じ 404（経路違いは守りより先に返す。票と同じ）。
+  if (!(await targetOnPage(env, entityId, target.type, target.id))) return notFoundResponse();
+
+  const rejected = await checkWrite(request, env, "post", form[TURNSTILE_FIELD] ?? null);
+  if (rejected) {
+    const notice = target.type === "fact" ? { form: "fact" as const, message: rejectionMessage(rejected) } : { message: rejectionMessage(rejected) };
+    const res = await pageResponse(request, env, entityId, notice, rejected.status);
+    if (rejected.retryAfter !== undefined) res.headers.set("Retry-After", String(rejected.retryAfter));
+    return res;
+  }
+
+  await insertReport(request, env, target.type, target.id);
+  return seeOther(`/p/${encodeURIComponent(entityId)}?reported=1`);
 }
