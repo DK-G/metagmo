@@ -9,6 +9,7 @@
 import type { Env } from "./index";
 import {
   DEFAULT_VIEW,
+  isDefaultView,
   diffTagShares,
   shouldStandardizeDiff,
   listTagsByView,
@@ -110,7 +111,6 @@ ${voteButtons ? voteButtons(t) : `<div class="vote-counts"><span>👍 ${t.up}</s
     .join("\n");
 }
 
-const isDefaultView = (view: ViewState) => view.recent === 0 && view.consensus === 0 && view.controversy === 0;
 
 /** 差の 2 段の語の大きさ（px）。差の強さを両段の最大値で割って、ワードクラウドと同じ 18〜56 に写す。 */
 export function diffSize(strength: number, maxStrength: number): number {
@@ -251,7 +251,7 @@ const badViewPage = () =>
     400,
   );
 
-/** `/p/:id` を受ける。視界は ?recent= / ?consensus= / ?controversy= の 0・1・2。それ以外の値は 400。 */
+/** `/p/:id` を受ける。視界は ?recent= / ?consensus= / ?controversy= の 0・1・2 と ?nobot= の 0・1。それ以外の値は 400。 */
 export async function handlePage(request: Request, env: Env, id: string): Promise<Response> {
   if (request.method !== "GET") {
     return new Response("method not allowed", { status: 405, headers: { Allow: "GET" } });

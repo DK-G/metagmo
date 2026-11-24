@@ -222,8 +222,13 @@ describe("クエリの読み取り", () => {
     expect(parseViewState(new URLSearchParams(""))).toEqual({ ok: true, view: DEFAULT_VIEW });
     expect(parseViewState(new URLSearchParams("recent=1&controversy=2"))).toEqual({
       ok: true,
-      view: { recent: 1, consensus: 0, controversy: 2 },
+      view: { recent: 1, consensus: 0, controversy: 2, nobot: 0 },
     });
+    expect(parseViewState(new URLSearchParams("nobot=1"))).toEqual({ ok: true, view: { ...DEFAULT_VIEW, nobot: 1 } });
+  });
+
+  it.each(["nobot=2", "nobot=on"])("BOT の票は 0・1 だけ（%s は不正）", (query) => {
+    expect(parseViewState(new URLSearchParams(query))).toEqual({ ok: false, field: "nobot" });
   });
 
   it.each(["recent=3", "consensus=on", "controversy=-1", "recent="])("0・1・2 以外（%s）は不正", (query) => {

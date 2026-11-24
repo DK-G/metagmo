@@ -23,6 +23,11 @@ describe("nextMode", () => {
     expect(nextMode(1)).toBe(2);
     expect(nextMode(2)).toBe(0);
   });
+
+  it("状態が 2 つのボタンは 未押し → 1 回目 → 未押し", () => {
+    expect(nextMode(0, 2)).toBe(1);
+    expect(nextMode(1, 2)).toBe(0);
+  });
 });
 
 describe("viewQuery", () => {
@@ -31,21 +36,22 @@ describe("viewQuery", () => {
   });
 
   it("未押しの項目は書かず、押された項目だけ書く", () => {
-    expect(viewQuery({ recent: 1, consensus: 0, controversy: 2 })).toBe("?recent=1&controversy=2");
+    expect(viewQuery({ recent: 1, consensus: 0, controversy: 2, nobot: 0 })).toBe("?recent=1&controversy=2");
+    expect(viewQuery({ ...DEFAULT_VIEW, consensus: 1, nobot: 1 })).toBe("?consensus=1&nobot=1");
   });
 });
 
 describe("viewButtonLinks", () => {
-  it("試作と同じ 3 ボタン・同じラベルを並べる", () => {
-    expect(VIEW_BUTTONS.map((b) => b.label)).toEqual(["直近一週間", "合意", "論争"]);
-    expect(viewButtonLinks(DEFAULT_VIEW, PATH).map((b) => b.stateLabel)).toEqual(["全期間", "すべて", "すべて"]);
+  it("試作と同じ 3 ボタンに、BOT の票のボタンを 4 つ目に並べる", () => {
+    expect(VIEW_BUTTONS.map((b) => b.label)).toEqual(["直近一週間", "合意", "論争", "BOT の票"]);
+    expect(viewButtonLinks(DEFAULT_VIEW, PATH).map((b) => b.stateLabel)).toEqual(["全期間", "すべて", "すべて", "含める"]);
   });
 
-  it("ボタンを 3 回押すと 3 状態を回って未押しへ戻る", () => {
+  it("ボタンを状態の数だけ押すと、状態を回って未押しへ戻る", () => {
     for (const { id, states } of VIEW_BUTTONS) {
       let view = DEFAULT_VIEW;
       const seen: string[] = [];
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < states.length; i++) {
         seen.push(linkOf(view, id).stateLabel);
         view = follow(linkOf(view, id).href);
       }
@@ -56,17 +62,18 @@ describe("viewButtonLinks", () => {
   });
 
   it("押したボタンだけが進み、他のボタンの状態は保たれる", () => {
-    const view: ViewState = { recent: 1, consensus: 2, controversy: 0 };
-    expect(follow(linkOf(view, "controversy").href)).toEqual({ recent: 1, consensus: 2, controversy: 1 });
-    expect(follow(linkOf(view, "consensus").href)).toEqual({ recent: 1, consensus: 0, controversy: 0 });
+    const view: ViewState = { recent: 1, consensus: 2, controversy: 0, nobot: 1 };
+    expect(follow(linkOf(view, "controversy").href)).toEqual({ recent: 1, consensus: 2, controversy: 1, nobot: 1 });
+    expect(follow(linkOf(view, "consensus").href)).toEqual({ recent: 1, consensus: 0, controversy: 0, nobot: 1 });
+    expect(follow(linkOf(view, "nobot").href)).toEqual({ recent: 1, consensus: 2, controversy: 0, nobot: 0 });
   });
 });
 
 describe("renderViewButtons", () => {
   it("今の状態の class と表示名、次の状態へのリンクを出す", () => {
-    const html = renderViewButtons({ recent: 0, consensus: 1, controversy: 2 }, PATH);
+    const html = renderViewButtons({ recent: 0, consensus: 1, controversy: 2, nobot: 0 }, PATH);
     expect(html).toContain('aria-label="視界ボタン"');
-    expect(html.match(/<a class="view-button/g)).toHaveLength(3);
+    expect(html.match(/<a class="view-button/g)).toHaveLength(4);
     expect(html).toContain(
       '<a class="view-button state-0" href="/p/abc?recent=1&amp;consensus=1&amp;controversy=2" data-view="recent" data-state="0"><span>直近一週間</span><strong>全期間</strong></a>',
     );
@@ -74,6 +81,9 @@ describe("renderViewButtons", () => {
     expect(html).toContain("<strong>合意</strong>");
     expect(html).toContain('class="view-button state-2" href="/p/abc?consensus=1"');
     expect(html).toContain("<strong>決着済み</strong>");
+    expect(html).toContain(
+      '<a class="view-button state-0" href="/p/abc?consensus=1&amp;controversy=2&amp;nobot=1" data-view="nobot" data-state="0"><span>BOT の票</span><strong>含める</strong></a>',
+    );
   });
 
   it("パスに混じった記号はエスケープする", () => {
