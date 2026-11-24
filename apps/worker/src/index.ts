@@ -1,6 +1,7 @@
 import { handleApi } from "./api";
 import { handleHome } from "./home";
 import { handleFactForm, handleTagForm, handleVoteForm } from "./form-routes";
+import { handleNewPage } from "./new-page";
 import { handlePage } from "./page";
 import { handleAbout, handleRobots, handleSitemap, notFoundResponse } from "./site-pages";
 
@@ -41,6 +42,7 @@ export default {
     if (url.pathname === "/robots.txt") return handleRobots(request);
     if (url.pathname === "/sitemap.xml") return handleSitemap(request, env);
     if (url.pathname === "/about") return handleAbout(request);
+    if (url.pathname === "/new") return handleNewPage(request, env);
 
     const page = /^\/p\/([^/]+)\/?$/.exec(url.pathname);
     if (page) {

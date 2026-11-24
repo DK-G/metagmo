@@ -8,7 +8,7 @@ import { escapeHtml } from "./page";
 import { PAGE_CSS } from "./page-css";
 import { parseSearch, searchEntities, type SearchOptions } from "./search";
 import { InputError } from "./validate";
-import { SITE_CSS, SITE_FOOTER } from "./site-pages";
+import { NEW_PAGE_LINK, SITE_CSS, SITE_FOOTER } from "./site-pages";
 
 export interface HomeEntityRow {
   id: string;
@@ -153,6 +153,7 @@ export function renderHomePage(entities: HomeEntityRow[], pageUrl: string, searc
 <main class="app-shell">
 <header class="topbar">
 <a class="brand" href="/" aria-label="メタグモ ホーム"><span class="brand-mark">M</span><span>メタグモ</span></a>
+${NEW_PAGE_LINK}
 </header>
 <section class="entity-hero" id="top">
 <div><h1>メタグモ</h1><p>${description}</p></div>
