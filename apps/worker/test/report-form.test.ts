@@ -140,8 +140,11 @@ describe("通報（POST /p/:id/report）", () => {
 
     const all = await listTagsByView(env.DB, id);
     expect(all.map((t) => t.id)).toEqual([kept]);
-    const consensus = await listTagsByView(env.DB, id, { recent: 0, consensus: 1, controversy: 0 });
+    const consensus = await listTagsByView(env.DB, id, { recent: 0, consensus: 1, controversy: 0, nobot: 0 });
     expect(consensus.map((t) => t.id)).toEqual([kept]);
+    // Q-020 の「BOT の票を除く」視界と重ねても、隠れたタグは出ない（merge で両方の条件を残した行）。
+    const nobot = await listTagsByView(env.DB, id, { recent: 0, consensus: 0, controversy: 0, nobot: 1 });
+    expect(nobot.map((t) => t.id)).toEqual([kept]);
 
     // 合意の視界のページにも出ない（全体との差の 2 段にも出ない）
     expect(await pageHtml(id, "?consensus=1")).not.toContain("集計から消えるタグ");
